@@ -1,4 +1,4 @@
-const PRODUCTION_API = "https://agrisentinel-api.onrender.com";
+const PRODUCTION_API = "https://agrisentinel-api-va3i.onrender.com";
 
 export const API_V1_PREFIX = "/api/v1";
 
