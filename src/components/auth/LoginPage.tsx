@@ -219,7 +219,7 @@ export const LoginPage: React.FC = () => {
                       className="btn-whatsapp-otp"
                       style={{
                         display: "inline-flex",
-                        align-items: "center",
+                        alignItems: "center",
                         gap: "6px",
                         background: "#25D366",
                         color: "#FFFFFF",
