@@ -64,13 +64,17 @@ export const LoginPage: React.FC = () => {
     try {
       const res = await sendOTP(phone);
       setOtpSent(true);
-      setOtpMessage(res.message);
+      setOtpCode(""); // Keep input empty so farmer reads code from WhatsApp and enters it manually
+      setOtpMessage(`Verification code sent to WhatsApp (${phone}). Open WhatsApp to get your 6-digit code.`);
       if (res.devCode) {
         setDevCode(res.devCode);
-        setOtpCode(res.devCode);
+        // Automatically open WhatsApp to deliver the 6-digit OTP code to the entered phone number
+        const cleanDigits = phone.replace(/\D/g, "");
+        const waUrl = `https://api.whatsapp.com/send?phone=${cleanDigits}&text=${encodeURIComponent(`Your AgriSentinel Verification Code is: ${res.devCode}`)}`;
+        window.open(waUrl, "_blank");
       }
     } catch (err: any) {
-      setError(err?.message || "Failed to send OTP. Please check provider configuration.");
+      setError(err?.message || "Failed to send OTP. Please check phone number.");
     } finally {
       setOtpLoading(false);
     }
@@ -209,7 +213,7 @@ export const LoginPage: React.FC = () => {
                 {devCode && (
                   <div className="whatsapp-otp-box" style={{ margin: "10px 0", textAlign: "center" }}>
                     <a
-                      href={`https://api.whatsapp.com/send?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(`Your AgriSentinel verification code is: ${devCode}`)}`}
+                      href={`https://api.whatsapp.com/send?phone=${encodeURIComponent(phone.replace(/\D/g, ""))}&text=${encodeURIComponent(`Your AgriSentinel Verification Code is: ${devCode}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-whatsapp-otp"
@@ -219,14 +223,16 @@ export const LoginPage: React.FC = () => {
                         gap: "6px",
                         background: "#25D366",
                         color: "#FFFFFF",
-                        padding: "8px 14px",
+                        padding: "10px 16px",
                         borderRadius: "8px",
                         fontSize: "13px",
                         fontWeight: 700,
                         textDecoration: "none",
+                        width: "100%",
+                        justifyContent: "center",
                       }}
                     >
-                      <span>💬 Send Verification Code via WhatsApp</span>
+                      <span>📱 Re-open WhatsApp to View Verification Code</span>
                     </a>
                   </div>
                 )}
