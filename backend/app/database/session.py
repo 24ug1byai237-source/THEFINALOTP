@@ -5,7 +5,12 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
 
-connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+connect_args = {}
+if settings.DATABASE_URL.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+elif "render.com" in settings.DATABASE_URL and "sslmode" not in settings.DATABASE_URL:
+    connect_args["sslmode"] = "require"
+
 engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
