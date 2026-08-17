@@ -98,7 +98,41 @@ def seed():
             longitude=85.5100,
             owner_phone="+91 9876543219",
         )
-        db.add_all([farm1, farm2])
+        farm3 = Farm(
+            id="FARM-JH-2026-0319",
+            name="Highland Dairy & Livestock Hub",
+            owner_name="Anand Verma",
+            location="Ormanjhi, Ranchi",
+            farm_type=FarmType.MIXED,
+            capacity=850,
+            animal_count=720,
+            district_id="district-ranchi",
+            registration_status=RegistrationStatus.REGISTERED,
+            biosecurity_score=85,
+            previous_score=80,
+            risk_level=RiskLevel.SAFE,
+            latitude=23.4800,
+            longitude=85.4200,
+            owner_phone="+91 9876543222",
+        )
+        farm4 = Farm(
+            id="FARM-JH-2026-0550",
+            name="Chota Nagpur Agro-Livestock Farm",
+            owner_name="Sunil Singh",
+            location="Mandu, Ramgarh",
+            farm_type=FarmType.POULTRY,
+            capacity=600,
+            animal_count=480,
+            district_id="district-ramgarh",
+            registration_status=RegistrationStatus.REGISTERED,
+            biosecurity_score=64,
+            previous_score=60,
+            risk_level=RiskLevel.SAFE,
+            latitude=23.7100,
+            longitude=85.4900,
+            owner_phone="+91 9876543233",
+        )
+        db.add_all([farm1, farm2, farm3, farm4])
         db.flush()
 
         # Create Passports for farms
@@ -121,14 +155,32 @@ def seed():
             issue_date=today,
             last_inspection_date=today - timedelta(days=45),
         )
-        db.add_all([p1, p2])
+        p3 = BiosecurityPassport(
+            id="PASS-FARM-JH-2026-0319",
+            farm_id=farm3.id,
+            passport_qr_code=f"BS-PASSPORT-{farm3.id}-VERIFIED",
+            compliance_status=ComplianceStatus.COMPLIANT,
+            risk_trend=RiskTrend.STABLE,
+            issue_date=today,
+            last_inspection_date=today - timedelta(days=15),
+        )
+        p4 = BiosecurityPassport(
+            id="PASS-FARM-JH-2026-0550",
+            farm_id=farm4.id,
+            passport_qr_code=f"BS-PASSPORT-{farm4.id}-REVIEW",
+            compliance_status=ComplianceStatus.ATTENTION_REQUIRED,
+            risk_trend=RiskTrend.STABLE,
+            issue_date=today,
+            last_inspection_date=today - timedelta(days=20),
+        )
+        db.add_all([p1, p2, p3, p4])
 
-        # Assign farm1 to farmer
-        assignment1 = UserFarmAssignment(user_id=farmer.id, farm_id=farm1.id, is_owner=True)
-        # Assign both farms to vet
-        assignment_vet1 = UserFarmAssignment(user_id=vet.id, farm_id=farm1.id, is_owner=False)
-        assignment_vet2 = UserFarmAssignment(user_id=vet.id, farm_id=farm2.id, is_owner=False)
-        db.add_all([assignment1, assignment_vet1, assignment_vet2])
+        # Assign all farms to demo users
+        assignments = []
+        for u in [farmer, vet, officer]:
+            for f in [farm1, farm2, farm3, farm4]:
+                assignments.append(UserFarmAssignment(user_id=u.id, farm_id=f.id, is_owner=(u.id == farmer.id and f.id == farm1.id)))
+        db.add_all(assignments)
 
         db.commit()
         print("Database seeded successfully with demo users, farms, and assignments!")
