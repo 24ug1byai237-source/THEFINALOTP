@@ -6,10 +6,20 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_current_user
 from app.database.session import get_db
 from app.models.user import User
-from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse, UserResponse
+from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest, SendOtpRequest, TokenResponse, UserResponse, VerifyOtpRequest
 from app.services.auth_service import AuthService, user_to_response
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+@router.post("/otp/send")
+def send_otp(payload: SendOtpRequest, db: Session = Depends(get_db)):
+    return AuthService.send_otp(db, payload)
+
+
+@router.post("/otp/verify", response_model=TokenResponse)
+def verify_otp(payload: VerifyOtpRequest, db: Session = Depends(get_db)):
+    return AuthService.verify_otp(db, payload)
 
 
 @router.post("/login", response_model=TokenResponse)

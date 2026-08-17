@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
 from app.models.corrective_action import ActionEvidence, CorrectiveAction
+from app.models.farm import Farm
 from app.models.enums import (
     ActionPriority,
     ComplianceStatus,
@@ -25,6 +26,8 @@ from app.utils.serializers import VET_PLAN_MARKER
 class CorrectiveActionService:
     @staticmethod
     def list_actions(db: Session, farm_id: str | None = None, user: User | None = None) -> list[CorrectiveAction]:
+        if user is None:
+            return []
         query = (
             db.query(CorrectiveAction)
             .options(joinedload(CorrectiveAction.evidence))
@@ -33,11 +36,17 @@ class CorrectiveActionService:
         if farm_id:
             FarmService.get_farm(db, farm_id, user)
             query = query.filter(CorrectiveAction.farm_id == farm_id)
-        elif user and user.role == UserRole.FARMER:
+        elif user.role == UserRole.FARMER:
             farm_ids = [a.farm_id for a in user.farm_assignments]
             query = query.filter(CorrectiveAction.farm_id.in_(farm_ids)) if farm_ids else query.filter(False)
-        elif user and user.district_id and user.role not in (UserRole.OFFICER, UserRole.VETERINARIAN):
-            query = query.join(CorrectiveAction.farm).filter_by(district_id=user.district_id)
+        elif user.role == UserRole.VETERINARIAN:
+            assigned = [a.farm_id for a in user.farm_assignments]
+            if assigned:
+                query = query.filter(CorrectiveAction.farm_id.in_(assigned))
+            elif user.district_id:
+                query = query.join(CorrectiveAction.farm).filter(Farm.district_id == user.district_id)
+        elif user.role == UserRole.OFFICER and user.district_id:
+            query = query.join(CorrectiveAction.farm).filter(Farm.district_id == user.district_id)
         return query.all()
 
     @staticmethod
@@ -47,6 +56,8 @@ class CorrectiveActionService:
         farm_id: str | None = None,
     ) -> list[CorrectiveAction]:
         """Only corrective-action uploads (action_evidence table), never incident report files."""
+        if user is None:
+            return []
         query = (
             db.query(CorrectiveAction)
             .join(ActionEvidence)
@@ -62,8 +73,17 @@ class CorrectiveActionService:
         if farm_id:
             FarmService.get_farm(db, farm_id, user)
             query = query.filter(CorrectiveAction.farm_id == farm_id)
-        elif user and user.district_id and user.role not in (UserRole.OFFICER, UserRole.VETERINARIAN):
-            query = query.join(CorrectiveAction.farm).filter_by(district_id=user.district_id)
+        elif user.role == UserRole.FARMER:
+            farm_ids = [a.farm_id for a in user.farm_assignments]
+            query = query.filter(CorrectiveAction.farm_id.in_(farm_ids)) if farm_ids else query.filter(False)
+        elif user.role == UserRole.VETERINARIAN:
+            assigned = [a.farm_id for a in user.farm_assignments]
+            if assigned:
+                query = query.filter(CorrectiveAction.farm_id.in_(assigned))
+            elif user.district_id:
+                query = query.join(CorrectiveAction.farm).filter(Farm.district_id == user.district_id)
+        elif user.role == UserRole.OFFICER and user.district_id:
+            query = query.join(CorrectiveAction.farm).filter(Farm.district_id == user.district_id)
         return query.all()
 
     @staticmethod

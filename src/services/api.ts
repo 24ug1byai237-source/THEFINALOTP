@@ -131,6 +131,10 @@ async function apiFetch<T>(path: string, options: RequestInit = {}, idempotencyK
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+    }
     const text = await response.text();
     throw new Error(parseApiError(text, response.status));
   }
@@ -697,6 +701,27 @@ export const healthRecordService = {
 };
 
 export const authService = {
+  async sendOtp(phone: string) {
+    return apiFetch<{ message: string; demoCode?: string }>("/auth/otp/send", {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    });
+  },
+
+  async verifyOtp(phone: string, code: string) {
+    const data = await apiFetch<{
+      accessToken: string;
+      refreshToken: string;
+      user: { id: string; fullName: string; email: string; role: UserRole; farmIds: string[] };
+    }>("/auth/otp/verify", {
+      method: "POST",
+      body: JSON.stringify({ phone, code }),
+    });
+    localStorage.setItem("accessToken", data.accessToken);
+    localStorage.setItem("refreshToken", data.refreshToken);
+    return data;
+  },
+
   async login(email: string, password: string) {
     const data = await apiFetch<{
       accessToken: string;
@@ -711,8 +736,15 @@ export const authService = {
     return data;
   },
 
+  async getMe() {
+    return apiFetch<{ id: string; fullName: string; email: string; role: UserRole; farmIds: string[] }>(
+      "/auth/me"
+    );
+  },
+
   logout() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    invalidateApiCache();
   },
 };

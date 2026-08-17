@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_optional_user, require_roles
@@ -44,7 +44,7 @@ def inspection_priority(
     db: Session = Depends(get_db),
     current_user: Annotated[User, Depends(require_roles(UserRole.OFFICER, UserRole.VETERINARIAN))] = None,
 ):
-    district_id = None
+    district_id = OfficerService.officer_district_scope(current_user)
     farms = OfficerService.inspection_priority(db, district_id)
     return [farm_to_response(f) for f in farms]
 
@@ -149,12 +149,16 @@ def _inspection_to_response(db: Session, inspection) -> InspectionResponse:
 
 @router.get("/inspections", response_model=list[InspectionResponse])
 def list_inspections(
+    farm_id: str | None = Query(default=None, alias="farmId"),
     db: Session = Depends(get_db),
     current_user: Annotated[User, Depends(require_roles(UserRole.OFFICER, UserRole.VETERINARIAN))] = None,
 ):
+    if farm_id:
+        FarmService.get_farm(db, farm_id, current_user)
     inspections = InspectionService.list_inspections(
         db,
-        district_id=OfficerService.officer_district_scope(current_user),
+        farm_id=farm_id,
+        district_id=OfficerService.officer_district_scope(current_user) if not farm_id else None,
         status=InspectionStatus.SCHEDULED,
     )
     return [_inspection_to_response(db, inspection) for inspection in inspections]

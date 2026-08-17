@@ -3,13 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_optional_user
+from app.core.dependencies import get_current_user
 from app.database.session import get_db
 from app.models.enums import UserRole
 from app.models.spatial import VetFacility
 from app.models.user import User
 from app.schemas.gis import GisMapNodeResponse, SpatialRiskResponse
-from app.services.officer_service import GisService
+from app.services.officer_service import GisService, OfficerService
 from app.utils.serializers import gis_node_from_farm
 
 router = APIRouter(prefix="/gis", tags=["GIS"])
@@ -20,9 +20,9 @@ def get_gis_nodes(
     farm_type: str | None = Query(default=None, alias="farmType"),
     risk_level: str | None = Query(default=None, alias="riskLevel"),
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
-    district_id = None
+    district_id = OfficerService.officer_district_scope(current_user)
     nodes = GisService.get_map_nodes(db, farm_type, risk_level, district_id)
     result = []
     for node in nodes:
@@ -53,6 +53,6 @@ def spatial_risk(
     farm_id: str = Query(alias="farmId"),
     radius_km: float = Query(default=15.0, alias="radiusKm"),
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
-    return GisService.spatial_risk(db, farm_id, radius_km)
+    return GisService.spatial_risk(db, farm_id, radius_km, user=current_user)

@@ -3,10 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_optional_user
+from app.core.dependencies import get_current_user
 from app.database.session import get_db
 from app.models.user import User
-from app.schemas.risk import RiskFactorResponse, RiskHistoryPoint, RiskSummaryResponse, ScoreTimelineEvent, ScoreTimelineEvent
+from app.schemas.risk import RiskFactorResponse, RiskHistoryPoint, RiskSummaryResponse, ScoreTimelineEvent
 from app.services.farm_service import FarmService
 from app.services.risk_service import RiskEngine
 from app.utils.serializers import risk_factor_to_response, risk_history_to_response
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/risk", tags=["Risk Analytics"])
 def get_risk_factors(
     farm_id: str | None = Query(default=None, alias="farmId"),
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     if farm_id:
         farm = FarmService.get_farm(db, farm_id, current_user)
@@ -33,7 +33,7 @@ def get_risk_history(
     farm_id: str,
     days: int = Query(default=7, ge=1, le=90),
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     FarmService.get_farm(db, farm_id, current_user)
     history = RiskEngine.get_history(db, farm_id, days)
@@ -44,7 +44,7 @@ def get_risk_history(
 def get_risk_summary(
     farm_id: str,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     farm = FarmService.get_farm(db, farm_id, current_user)
     RiskEngine.recalculate_farm(db, farm)
@@ -58,7 +58,7 @@ def get_score_timeline(
     farm_id: str,
     days: int = Query(default=30, ge=1, le=90),
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     FarmService.get_farm(db, farm_id, current_user)
     return RiskEngine.get_score_timeline(db, farm_id, days)
@@ -68,7 +68,7 @@ def get_score_timeline(
 def recalculate_risk(
     farm_id: str,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     farm = FarmService.get_farm(db, farm_id, current_user)
     RiskEngine.recalculate_farm(db, farm)

@@ -1,5 +1,5 @@
 import React from "react";
-import { ShieldCheck, Bell, UserCheck, Stethoscope, Landmark, Menu } from "lucide-react";
+import { ShieldCheck, Bell, UserCheck, Stethoscope, Landmark, Menu, LogOut } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { useTranslation } from "../../context/LocaleContext";
@@ -12,7 +12,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileNav }) => {
-  const { role, setRole, activeFarm, setActiveFarm, allFarms } = useAuth();
+  const { role, activeFarm, setActiveFarm, allFarms, logout } = useAuth();
   const { unreadCount, setIsDrawerOpen, refreshNotifications } = useNotifications();
   const { t, locale } = useTranslation();
 
@@ -36,30 +36,27 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileNav }) => {
           </div>
         </div>
 
-        {/* Center: Role Selection Switcher */}
+        {/* Center: Read-Only Authenticated Role Indicator */}
         <div className="navbar-center">
-          <div className="role-switcher" role="radiogroup" aria-label="Select User Role">
-            <button
-              className={`role-btn ${role === "farmer" ? "active" : ""}`}
-              onClick={() => setRole("farmer")}
-            >
-              <UserCheck size={16} />
-              <span>{t("role.farmer")}</span>
-            </button>
-            <button
-              className={`role-btn ${role === "veterinarian" ? "active" : ""}`}
-              onClick={() => setRole("veterinarian")}
-            >
-              <Stethoscope size={16} />
-              <span>{t("role.veterinarian")}</span>
-            </button>
-            <button
-              className={`role-btn ${role === "officer" ? "active" : ""}`}
-              onClick={() => setRole("officer")}
-            >
-              <Landmark size={16} />
-              <span>{t("role.officer")}</span>
-            </button>
+          <div className="auth-role-badge">
+            {role === "farmer" && (
+              <>
+                <UserCheck size={16} className="role-icon" />
+                <span>{t("role.farmer")} Portal</span>
+              </>
+            )}
+            {role === "veterinarian" && (
+              <>
+                <Stethoscope size={16} className="role-icon" />
+                <span>{t("role.veterinarian")} Portal</span>
+              </>
+            )}
+            {role === "officer" && (
+              <>
+                <Landmark size={16} className="role-icon" />
+                <span>{t("role.officer")} Dashboard</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -107,6 +104,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileNav }) => {
           >
             <Bell size={20} />
             {unreadCount > 0 && <span className="bell-badge">{unreadCount}</span>}
+          </button>
+
+          <button
+            className="logout-btn"
+            onClick={logout}
+            title="Sign Out"
+            aria-label="Sign Out"
+          >
+            <LogOut size={18} />
+            <span className="logout-text">Logout</span>
           </button>
         </div>
       </div>

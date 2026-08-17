@@ -23,22 +23,32 @@ DEMO_FARMER_EMAIL = "farmer@bioshield.local"
 
 class FarmService:
     @staticmethod
-    def _is_demo_farmer(user: User | None) -> bool:
-        return user is not None and user.role == UserRole.FARMER and user.email == DEMO_FARMER_EMAIL
-
-    @staticmethod
     def _accessible_farm_ids(user: User | None) -> list[str] | None:
         if user is None:
+            return []
+        if user.role == UserRole.FARMER:
+            return [a.farm_id for a in user.farm_assignments]
+        if user.role == UserRole.VETERINARIAN:
+            assigned = [a.farm_id for a in user.farm_assignments]
+            if assigned:
+                return assigned
             return None
-        if user.role in (UserRole.VETERINARIAN, UserRole.OFFICER):
+        if user.role == UserRole.OFFICER:
             return None
-        if FarmService._is_demo_farmer(user):
-            return None
-        return [a.farm_id for a in user.farm_assignments]
+        return None
 
     @staticmethod
     def list_farms(db: Session, user: User | None = None) -> list[Farm]:
+        if user is None:
+            return []
         query = db.query(Farm).filter(Farm.registration_status == RegistrationStatus.REGISTERED)
+        if user.role == UserRole.OFFICER and user.district_id:
+            query = query.filter(Farm.district_id == user.district_id)
+        elif user.role == UserRole.VETERINARIAN and user.district_id:
+            assigned = [a.farm_id for a in user.farm_assignments]
+            if not assigned:
+                query = query.filter(Farm.district_id == user.district_id)
+
         farm_ids = FarmService._accessible_farm_ids(user)
         if farm_ids is not None:
             if not farm_ids:
@@ -57,15 +67,21 @@ class FarmService:
     @staticmethod
     def ensure_farm_access(farm: Farm, user: User | None) -> None:
         if user is None:
-            return
-        if user.role in (UserRole.VETERINARIAN, UserRole.OFFICER):
-            return
+            raise ForbiddenError("Authentication required to access farm data.")
         if user.role == UserRole.FARMER:
-            if FarmService._is_demo_farmer(user):
-                return
             allowed = {a.farm_id for a in user.farm_assignments}
             if farm.id not in allowed:
                 raise ForbiddenError("You do not have access to this farm.")
+        elif user.role == UserRole.VETERINARIAN:
+            allowed = {a.farm_id for a in user.farm_assignments}
+            if allowed:
+                if farm.id not in allowed:
+                    raise ForbiddenError("You do not have access to this farm.")
+            elif user.district_id and farm.district_id != user.district_id:
+                raise ForbiddenError("Farm is outside your assigned district scope.")
+        elif user.role == UserRole.OFFICER:
+            if user.district_id and farm.district_id != user.district_id:
+                raise ForbiddenError("Farm is outside your assigned district scope.")
 
     @staticmethod
     def create_farm(db: Session, payload: FarmCreate, user: User | None = None) -> Farm:

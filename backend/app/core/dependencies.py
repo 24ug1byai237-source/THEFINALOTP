@@ -1,4 +1,5 @@
 from collections.abc import Generator
+import uuid
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -30,7 +31,11 @@ def get_current_user(
     user_id = payload.get("sub")
     if not user_id:
         raise raise_http_from_app_error(UnauthorizedError("Invalid token payload."))
-    user = db.query(User).filter(User.id == user_id, User.is_active.is_(True)).first()
+    try:
+        user_id_val = uuid.UUID(str(user_id)) if not isinstance(user_id, uuid.UUID) else user_id
+    except ValueError:
+        user_id_val = user_id
+    user = db.query(User).filter(User.id == user_id_val, User.is_active.is_(True)).first()
     if not user:
         raise raise_http_from_app_error(UnauthorizedError("User not found or inactive."))
     return user
@@ -49,10 +54,8 @@ def get_optional_user(
 
 
 def require_roles(*roles: UserRole):
-    def dependency(current_user: Annotated[User | None, Depends(get_optional_user)]) -> User | None:
+    def dependency(current_user: Annotated[User, Depends(get_current_user)]) -> User:
         if current_user is None:
-            if settings.DEBUG:
-                return None
             raise raise_http_from_app_error(UnauthorizedError())
         if current_user.role not in roles:
             raise raise_http_from_app_error(
@@ -61,3 +64,4 @@ def require_roles(*roles: UserRole):
         return current_user
 
     return dependency
+

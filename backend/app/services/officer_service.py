@@ -59,8 +59,8 @@ class GisService:
         return nodes
 
     @staticmethod
-    def spatial_risk(db: Session, farm_id: str, radius_km: float = 15.0) -> dict:
-        farm = FarmService.get_farm(db, farm_id)
+    def spatial_risk(db: Session, farm_id: str, radius_km: float = 15.0, user: User | None = None) -> dict:
+        farm = FarmService.get_farm(db, farm_id, user)
         if farm.latitude is None or farm.longitude is None:
             raise ValidationAppError("Farm coordinates are required for spatial analysis.")
 
@@ -139,9 +139,16 @@ class GisService:
 class OfficerService:
     @staticmethod
     def officer_district_scope(user: User | None) -> str | None:
-        if user and user.role == UserRole.OFFICER:
+        """
+        Returns the district_id to scope queries for officer/vet dashboards.
+        - Officers with a district_id: scoped to their district
+        - Officers without district_id: no scope restriction (national-level access)
+        - Veterinarians: scoped to their district_id
+        - None user: no scope (returns None, caller handles auth)
+        """
+        if user is None:
             return None
-        return user.district_id if user else None
+        return user.district_id  # Both officers and vets use their district scope
 
     @staticmethod
     def get_stats(db: Session, district_id: str | None = None) -> dict:

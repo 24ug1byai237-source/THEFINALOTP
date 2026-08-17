@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, UploadFile
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_optional_user
+from app.core.dependencies import get_current_user
 from app.database.session import get_db
 from app.models.user import User
 from app.schemas.health import HealthRecordCreate, HealthRecordResponse
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/health-records", tags=["Health Records"])
 def list_health_records(
     farm_id: str,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     records = HealthRecordService.list_records(db, farm_id, current_user)
     return [
@@ -43,7 +43,7 @@ def create_health_record(
     farm_id: str,
     payload: HealthRecordCreate,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     record = HealthRecordService.create_record(db, farm_id, payload, current_user)
     return HealthRecordResponse(
@@ -65,7 +65,7 @@ def create_health_record(
 async def upload_file(
     file: UploadFile,
     db: Session = Depends(get_db),
-    _: Annotated[User | None, Depends(get_optional_user)] = None,
+    _: Annotated[User, Depends(get_current_user)] = None,
 ):
     record = await save_upload_file(db, file)
     db.commit()

@@ -13,6 +13,7 @@ import { NotificationCenter } from "./components/notifications/NotificationCente
 import { SyncProvider } from "./context/SyncContext";
 import { OfflineBanner } from "./components/common/OfflineBanner";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
+import { LoginPage } from "./components/auth/LoginPage";
 import "./App.css";
 
 const RiskDashboard = lazy(() =>
@@ -60,29 +61,42 @@ const TABS_BY_ROLE: Record<UserRole, NavTab[]> = {
     "evidence-inspection",
     "actions",
     "gis",
-    "officer",
   ],
   officer: ["overview", "passport", "risk", "incident", "actions", "gis", "officer"],
 };
 
 function AppContent() {
-  const { role, refreshFarms } = useAuth();
+  const { isAuthenticated, role, refreshFarms } = useAuth();
 
   const [activeTab, setActiveTab] = useState<NavTab>("overview");
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isPassportOpen, setIsPassportOpen] = useState(false);
+  const [isReportIncidentOpen, setIsReportIncidentOpen] = useState(false);
+  const [isAarohiOpen, setIsAarohiOpen] = useState(false);
 
+  // Compute allowed tabs and effective tab BEFORE hooks — must be deterministic
   const allowedTabs = TABS_BY_ROLE[role] || TABS_BY_ROLE.farmer;
   const effectiveTab = allowedTabs.includes(activeTab) ? activeTab : "overview";
 
+  // Reset tab when role changes so we don't end up on a disallowed tab
+  // NOTE: All hooks must be declared before any conditional return to satisfy
+  // React's Rules of Hooks. The conditional return is below all hooks.
   useEffect(() => {
     if (effectiveTab !== activeTab) {
       setActiveTab(effectiveTab);
     }
   }, [role, activeTab, effectiveTab]);
 
-  const [isPassportOpen, setIsPassportOpen] = useState(false);
-  const [isReportIncidentOpen, setIsReportIncidentOpen] = useState(false);
-  const [isAarohiOpen, setIsAarohiOpen] = useState(false);
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  // Role-based view helpers — backend JWT enforces this server-side too,
+  // but these guards prevent accidental cross-role rendering on the client.
+  const canViewVet = role === "veterinarian";
+  const canViewOfficer = role === "officer";
+  const canViewFarmer = role === "farmer";
 
   return (
     <div className="bioshield-app">
@@ -111,7 +125,8 @@ function AppContent() {
           {effectiveTab === "overview" && (
             <ErrorBoundary>
               <Suspense fallback={<TabLoadingFallback />}>
-                {role === "farmer" ? (
+                {/* Role-gated: each role sees only their own overview dashboard */}
+                {canViewFarmer && (
                   <FarmerDashboard
                     onOpenPassport={() => setIsPassportOpen(true)}
                     onOpenReportIncident={() => setIsReportIncidentOpen(true)}
@@ -119,9 +134,9 @@ function AppContent() {
                     onNavigateToRisk={() => setActiveTab("risk")}
                     onNavigateToActionCenter={() => setActiveTab("action-center")}
                   />
-                ) : role === "veterinarian" ? (
-                  <VetDashboard />
-                ) : (
+                )}
+                {canViewVet && <VetDashboard />}
+                {canViewOfficer && (
                   <OfficerDashboard onNavigateToGis={() => setActiveTab("gis")} />
                 )}
               </Suspense>
@@ -139,7 +154,7 @@ function AppContent() {
           )}
 
           {effectiveTab === "action-center" && (
-            role === "farmer" ? (
+            canViewFarmer ? (
               <ErrorBoundary>
                 <BiosecurityActionCenter
                   onNavigateToActions={() => setActiveTab("actions")}
@@ -148,10 +163,10 @@ function AppContent() {
             ) : (
               <ErrorBoundary>
                 <Suspense fallback={<TabLoadingFallback />}>
-                  {role === "officer" ? (
+                  {canViewOfficer ? (
                     <OfficerDashboard onNavigateToGis={() => setActiveTab("gis")} />
                   ) : (
-                    <VetDashboard />
+                    canViewVet && <VetDashboard />
                   )}
                 </Suspense>
               </ErrorBoundary>
@@ -169,7 +184,8 @@ function AppContent() {
           {effectiveTab === "incident" && (
             <ErrorBoundary>
               <Suspense fallback={<TabLoadingFallback />}>
-                {role === "veterinarian" ? (
+                {/* Role-gated: vets see their verification queue; farmers see their incidents */}
+                {canViewVet ? (
                   <VetDashboard />
                 ) : (
                   <FarmerDashboard
@@ -192,7 +208,8 @@ function AppContent() {
             </ErrorBoundary>
           )}
 
-          {effectiveTab === "evidence-inspection" && role === "veterinarian" && (
+          {/* Evidence inspection: strictly veterinarian-only, double-guarded */}
+          {effectiveTab === "evidence-inspection" && canViewVet && (
             <ErrorBoundary fallbackLabel="Evidence Queue failed to load. Please retry.">
               <Suspense fallback={<TabLoadingFallback />}>
                 <VetEvidenceInspectionView />
@@ -211,7 +228,8 @@ function AppContent() {
             </ErrorBoundary>
           )}
 
-          {effectiveTab === "officer" && (
+          {/* Officer tab: strictly officer-only, double-guarded */}
+          {effectiveTab === "officer" && canViewOfficer && (
             <ErrorBoundary>
               <Suspense fallback={<TabLoadingFallback />}>
                 <OfficerDashboard onNavigateToGis={() => setActiveTab("gis")} />

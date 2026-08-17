@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, File, Form, UploadFile
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_optional_user, require_roles
+from app.core.dependencies import get_current_user, require_roles
 from app.database.session import get_db
 from app.models.enums import UserRole
 from app.models.user import User
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/incidents", tags=["Incidents"])
 def list_incidents(
     farm_id: str | None = Query(default=None, alias="farmId"),
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     incidents = IncidentService.list_incidents(db, farm_id, current_user)
     return [incident_to_response(i, db) for i in incidents]
@@ -35,7 +35,7 @@ def list_incidents(
 def get_incident(
     incident_id: str,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     incident = IncidentService.get_incident(db, incident_id, current_user)
     return incident_to_response(incident, db)
@@ -44,7 +44,7 @@ def get_incident(
 @router.post("", response_model=IncidentResponse, status_code=201)
 async def create_incident(
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
     farm_id: str = Form(...),
     incident_type: str = Form(...),
     animal_type: str = Form(...),
@@ -76,7 +76,7 @@ async def create_incident(
 def create_incident_json(
     payload: IncidentCreate,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     incident = IncidentService.create_incident(db, payload, current_user)
     return incident_to_response(incident, db)

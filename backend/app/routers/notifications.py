@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_optional_user
+from app.core.dependencies import get_current_user
 from app.database.session import get_db
 from app.models.enums import UserRole
 from app.models.user import User
@@ -18,9 +18,9 @@ router = APIRouter(prefix="/notifications", tags=["Notifications"])
 def list_notifications(
     role: UserRole | None = Query(default=None),
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
-    effective_role = role or (current_user.role if current_user else None)
+    effective_role = current_user.role if current_user else role
     notifications = NotificationService.list_notifications(db, effective_role)
     return [notification_to_response(n) for n in notifications]
 

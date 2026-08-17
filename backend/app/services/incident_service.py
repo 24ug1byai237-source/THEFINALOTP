@@ -10,6 +10,7 @@ from app.models.enums import (
     UserRole,
 )
 from app.models.incident import Incident, IncidentEvidence
+from app.models.farm import Farm
 from app.models.user import User
 from app.schemas.incident import IncidentCreate, IncidentVerifyRequest
 from app.services.farm_service import FarmService
@@ -21,15 +22,23 @@ from app.utils.helpers import generate_id, incident_severity
 class IncidentService:
     @staticmethod
     def list_incidents(db: Session, farm_id: str | None = None, user: User | None = None) -> list[Incident]:
+        if user is None:
+            return []
         query = db.query(Incident).order_by(Incident.created_at.desc())
         if farm_id:
             FarmService.get_farm(db, farm_id, user)
             query = query.filter(Incident.farm_id == farm_id)
-        elif user and user.role == UserRole.FARMER:
+        elif user.role == UserRole.FARMER:
             farm_ids = [a.farm_id for a in user.farm_assignments]
             query = query.filter(Incident.farm_id.in_(farm_ids)) if farm_ids else query.filter(False)
-        elif user and user.district_id and user.role not in (UserRole.OFFICER, UserRole.VETERINARIAN):
-            query = query.join(Incident.farm).filter_by(district_id=user.district_id)
+        elif user.role == UserRole.VETERINARIAN:
+            assigned = [a.farm_id for a in user.farm_assignments]
+            if assigned:
+                query = query.filter(Incident.farm_id.in_(assigned))
+            elif user.district_id:
+                query = query.join(Incident.farm).filter(Farm.district_id == user.district_id)
+        elif user.role == UserRole.OFFICER and user.district_id:
+            query = query.join(Incident.farm).filter(Farm.district_id == user.district_id)
         return query.all()
 
     @staticmethod

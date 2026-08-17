@@ -130,7 +130,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span>{t("nav.gis")}</span>
         </button>
 
-        {(role === "officer" || role === "veterinarian") && (
+        {role === "officer" && (
           <button
             className={`sidebar-link ${activeTab === "officer" ? "active" : ""}`}
             onClick={() => setActiveTab("officer")}

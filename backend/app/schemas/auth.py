@@ -3,6 +3,15 @@ from pydantic import Field
 from app.schemas.common import CamelModel
 
 
+class SendOtpRequest(CamelModel):
+    phone: str = Field(min_length=8)
+
+
+class VerifyOtpRequest(CamelModel):
+    phone: str = Field(min_length=8)
+    code: str = Field(min_length=4)
+
+
 class LoginRequest(CamelModel):
     email: str = Field(min_length=3)
     password: str = Field(min_length=6)

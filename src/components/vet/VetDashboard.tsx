@@ -34,6 +34,8 @@ function sortIncidentsForVetQueue(list: IncidentReport[]): IncidentReport[] {
 
 export const VetDashboard: React.FC = () => {
   const { activeFarm, setActiveFarm, allFarms, refreshFarms } = useAuth();
+  // Track which farm ID we last fetched for — prevents stale data on farm switch
+  const [fetchedFarmId, setFetchedFarmId] = useState<string>("all");
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null);
@@ -47,11 +49,16 @@ export const VetDashboard: React.FC = () => {
   const [spatialNote, setSpatialNote] = useState<string>("");
   const [farmFilter, setFarmFilter] = useState<string>("all");
 
-  const fetchIncidents = async (preferIncidentId?: string) => {
+  const fetchIncidents = async (farmId?: string, preferIncidentId?: string) => {
     setLoading(true);
     try {
-      const list = sortIncidentsForVetQueue(await incidentService.getIncidents());
+      // Pass farmId so the backend scopes results to the selected farm.
+      // Backend validates the vet is authorized for that farm — 403 if not.
+      const list = sortIncidentsForVetQueue(
+        await incidentService.getIncidents(farmId !== "all" ? farmId : undefined)
+      );
       setIncidents(list);
+      setFetchedFarmId(farmId ?? "all");
       if (list.length > 0) {
         setSelectedIncident((prev) => {
           const keepId = preferIncidentId ?? prev?.id;
@@ -73,9 +80,21 @@ export const VetDashboard: React.FC = () => {
     }
   };
 
+  // Initial fetch — load all incidents the vet is authorized to see
   useEffect(() => {
-    fetchIncidents();
+    void fetchIncidents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-fetch when the active farm changes in the navbar
+  // This ensures farm isolation: selecting Farm A shows only Farm A incidents
+  useEffect(() => {
+    if (activeFarm.id !== fetchedFarmId) {
+      setFarmFilter(activeFarm.id);
+      void fetchIncidents(activeFarm.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFarm.id]);
 
   useEffect(() => {
     if (!selectedIncident) return;
@@ -148,6 +167,8 @@ export const VetDashboard: React.FC = () => {
   };
 
   const filteredIncidents = incidents.filter((inc) => {
+    // Client-side filter: backend already scopes by farm/district,
+    // but this ensures the displayed list matches the selected dropdown value
     if (farmFilter !== "all" && inc.farmId !== farmFilter) return false;
     return true;
   });
@@ -222,7 +243,13 @@ export const VetDashboard: React.FC = () => {
             <h3 className="panel-title" style={{ margin: 0 }}>Incident Reports</h3>
             <select
               value={farmFilter}
-              onChange={(e) => setFarmFilter(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFarmFilter(val);
+                // Re-fetch from backend when farm filter changes
+                // Backend validates authorization for the selected farm
+                void fetchIncidents(val);
+              }}
               className="filter-select"
               style={{ fontSize: "0.825rem", padding: "4px 8px" }}
             >

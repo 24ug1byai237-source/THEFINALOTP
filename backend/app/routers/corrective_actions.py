@@ -35,7 +35,7 @@ def list_awaiting_verification(
 def list_actions(
     farm_id: str | None = Query(default=None, alias="farmId"),
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     actions = CorrectiveActionService.list_actions(db, farm_id, current_user)
     return [action_to_response(a, db) for a in actions]
@@ -45,7 +45,7 @@ def list_actions(
 def create_action(
     payload: CorrectiveActionCreate,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(require_roles(UserRole.VETERINARIAN, UserRole.OFFICER))] = None,
+    current_user: Annotated[User, Depends(require_roles(UserRole.VETERINARIAN, UserRole.OFFICER))] = None,
 ):
     action = CorrectiveActionService.create_action(db, payload, current_user)
     return action_to_response(action, db)
@@ -55,7 +55,7 @@ def create_action(
 def get_action(
     action_id: str,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     action = CorrectiveActionService.get_action(db, action_id, current_user)
     return action_to_response(action, db, include_analysis=True)
@@ -65,7 +65,7 @@ def get_action(
 def get_submitted_evidence(
     action_id: str,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(require_roles(UserRole.VETERINARIAN, UserRole.OFFICER, UserRole.FARMER))] = None,
+    current_user: Annotated[User, Depends(require_roles(UserRole.VETERINARIAN, UserRole.OFFICER, UserRole.FARMER))] = None,
 ):
     """Return only the farmer's Corrective Actions upload — never incident report media."""
     evidence = CorrectiveActionService.get_submitted_evidence(db, action_id, current_user)
@@ -76,7 +76,7 @@ def get_submitted_evidence(
 async def submit_evidence(
     action_id: str,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
     file: UploadFile = File(...),
     notes: str = Form(default=""),
     location: str = Form(default=""),
@@ -99,7 +99,7 @@ def submit_evidence_json(
     action_id: str,
     payload: dict,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     action = CorrectiveActionService.submit_evidence(
         db,

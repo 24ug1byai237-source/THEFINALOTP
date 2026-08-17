@@ -28,7 +28,7 @@ router = APIRouter(prefix="/farms", tags=["Farms"])
 @router.get("", response_model=list[FarmResponse])
 def list_farms(
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     farms = FarmService.list_farms(db, current_user)
     for farm in farms:
@@ -53,7 +53,7 @@ def create_farm(
 def get_farm(
     farm_id: str,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     farm = FarmService.get_farm(db, farm_id, current_user)
     RiskEngine.recalculate_farm(db, farm)
@@ -77,7 +77,7 @@ def update_farm(
 def get_passport(
     farm_id: str,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     farm, passport, history = PassportService.get_passport(db, farm_id, current_user)
     return passport_to_response(farm, passport, history)
@@ -97,7 +97,7 @@ def submit_assessment(
 def get_checklist(
     farm_id: str,
     db: Session = Depends(get_db),
-    current_user: Annotated[User | None, Depends(get_optional_user)] = None,
+    current_user: Annotated[User, Depends(get_current_user)] = None,
 ):
     items = ChecklistService.list_items(db, farm_id, current_user)
     return [

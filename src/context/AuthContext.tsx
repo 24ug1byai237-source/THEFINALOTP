@@ -1,44 +1,55 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { UserRole, Farm } from "../types";
 import { initialFarm, allFarmsMock } from "../data/mockData";
 import { farmService, authService, API_CACHE_TTL_MS, invalidateApiCache } from "../services/api";
 import { getAllCachedFarmBundles } from "../offline/storage/cacheStore";
 import { isCacheFresh, cacheKey } from "../services/apiCache";
 
-const DEMO_CREDENTIALS: Record<UserRole, { email: string; password: string }> = {
+// ---------------------------------------------------------------------------
+// Demo credentials — ONLY used on the LoginPage before the user is authenticated.
+// These are never exposed post-login; role is always derived from the JWT/me API.
+// ---------------------------------------------------------------------------
+export const DEMO_CREDENTIALS: Record<UserRole, { email: string; password: string }> = {
   farmer: { email: "farmer@bioshield.local", password: "farmer123" },
   veterinarian: { email: "vet@bioshield.local", password: "vet123" },
   officer: { email: "officer@bioshield.local", password: "officer123" },
 };
 
-async function loginDemoRole(nextRole: UserRole) {
-  const creds = DEMO_CREDENTIALS[nextRole];
-  await authService.login(creds.email, creds.password);
+export interface AuthUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
+  farmIds: string[];
+  districtId?: string | null;
 }
 
 interface AuthContextType {
+  isAuthenticated: boolean;
+  user: AuthUser | null;
   role: UserRole;
-  setRole: (role: UserRole) => void;
   activeFarm: Farm;
   setActiveFarm: (farm: Farm) => void;
   allFarms: Farm[];
   refreshFarms: (force?: boolean) => Promise<void>;
+  sendOTP: (phone: string) => Promise<string>;
+  loginWithOTP: (phone: string, code: string) => Promise<void>;
+  loginWithCredentials: (email: string, password: string) => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [role, setRoleState] = useState<UserRole>("farmer");
   const [activeFarm, setActiveFarm] = useState<Farm>(initialFarm);
   const [allFarms, setAllFarms] = useState<Farm[]>(allFarmsMock);
-  const lastFarmFetchRef = useRef(0);
-  const allFarmsCountRef = useRef(allFarms.length);
-  allFarmsCountRef.current = allFarms.length;
 
   const loadFarms = useCallback(async (force = false) => {
     try {
       const farms = await farmService.getAllFarms({ force });
-      lastFarmFetchRef.current = Date.now();
       if (farms.length > 0) {
         setAllFarms(farms);
         setActiveFarm((current) => {
@@ -59,13 +70,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Restore authenticated session on startup from stored access token
   useEffect(() => {
-    loginDemoRole("farmer")
-      .then(() => loadFarms(true))
-      .catch(() => {
-        // Backend unavailable — keep initial mock farm list for offline/demo fallback
-      });
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      setIsAuthenticated(false);
+      return;
+    }
 
+    authService.getMe()
+      .then((u) => {
+        const authUser: AuthUser = {
+          id: u.id,
+          fullName: u.fullName,
+          email: u.email,
+          role: u.role as UserRole,
+          farmIds: u.farmIds ?? [],
+        };
+        setUser(authUser);
+        // Role comes ONLY from the backend /auth/me response — never from frontend state
+        setRoleState(authUser.role);
+        setIsAuthenticated(true);
+        void loadFarms(true);
+      })
+      .catch(() => {
+        // Invalid/expired token — clear storage and force re-login
+        authService.logout();
+        setIsAuthenticated(false);
+      });
+  }, [loadFarms]);
+
+  // Refresh farm list when tab regains focus (stale-while-revalidate)
+  useEffect(() => {
+    if (!isAuthenticated) return;
     const onFocus = () => {
       if (!isCacheFresh(cacheKey("GET", "/farms"), API_CACHE_TTL_MS)) {
         void loadFarms();
@@ -73,29 +110,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
+  }, [isAuthenticated, loadFarms]);
+
+  const sendOTP = useCallback(async (phone: string): Promise<string> => {
+    const res = await authService.sendOtp(phone);
+    return res.message;
+  }, []);
+
+  // Internal post-login handler — sets role from the server response
+  const handlePostLogin = useCallback(async (userData: AuthUser) => {
+    setUser(userData);
+    // SECURITY: Role is always set from the authenticated server response.
+    // The frontend cannot override the role — any attempt to access a
+    // different role's API will be rejected with 403 by the backend.
+    setRoleState(userData.role);
+    setIsAuthenticated(true);
+    invalidateApiCache();
+    await loadFarms(true);
   }, [loadFarms]);
 
-  const setRole = useCallback(async (nextRole: UserRole) => {
-    setRoleState(nextRole);
-    invalidateApiCache();
-    try {
-      await loginDemoRole(nextRole);
-      await loadFarms(true);
-    } catch (err) {
-      console.error("Demo login failed:", err);
-    }
-  }, [loadFarms]);
+  const loginWithOTP = useCallback(async (phone: string, code: string) => {
+    const data = await authService.verifyOtp(phone, code);
+    const authUser: AuthUser = {
+      id: data.user.id,
+      fullName: data.user.fullName,
+      email: data.user.email,
+      role: data.user.role as UserRole,
+      farmIds: data.user.farmIds ?? [],
+    };
+    await handlePostLogin(authUser);
+  }, [handlePostLogin]);
+
+  const loginWithCredentials = useCallback(async (email: string, pass: string) => {
+    const data = await authService.login(email, pass);
+    const authUser: AuthUser = {
+      id: data.user.id,
+      fullName: data.user.fullName,
+      email: data.user.email,
+      role: data.user.role as UserRole,
+      farmIds: data.user.farmIds ?? [],
+    };
+    await handlePostLogin(authUser);
+  }, [handlePostLogin]);
+
+  const logout = useCallback(() => {
+    // Clear auth tokens, invalidate all API caches, reset all state
+    authService.logout();
+    setIsAuthenticated(false);
+    setUser(null);
+    setRoleState("farmer");
+    // Reset farm state to prevent stale farm data from leaking to the next session
+    setAllFarms([]);
+    setActiveFarm(initialFarm);
+  }, []);
 
   const contextValue = useMemo(
     () => ({
+      isAuthenticated,
+      user,
       role,
-      setRole,
       activeFarm,
       setActiveFarm,
       allFarms,
       refreshFarms: loadFarms,
+      sendOTP,
+      loginWithOTP,
+      loginWithCredentials,
+      // loginDemoRole is intentionally NOT exported here.
+      // The LoginPage imports DEMO_CREDENTIALS directly and calls loginWithCredentials.
+      // This prevents any post-login component from calling a role-switching function.
+      logout,
     }),
-    [role, setRole, activeFarm, allFarms, loadFarms]
+    [
+      isAuthenticated,
+      user,
+      role,
+      activeFarm,
+      allFarms,
+      loadFarms,
+      sendOTP,
+      loginWithOTP,
+      loginWithCredentials,
+      logout,
+    ]
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

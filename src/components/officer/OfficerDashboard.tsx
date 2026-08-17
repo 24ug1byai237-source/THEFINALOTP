@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Landmark, MapPin, ArrowRight } from "lucide-react";
 import type { OfficerStats } from "../../types";
 import { officerService } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 import { InspectionPriorityPanel } from "./InspectionPriorityPanel";
 import { ScheduledInspectionsPanel } from "./ScheduledInspectionsPanel";
 
@@ -10,6 +11,7 @@ interface OfficerDashboardProps {
 }
 
 export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({ onNavigateToGis }) => {
+  const { activeFarm, allFarms } = useAuth();
   const [stats, setStats] = useState<OfficerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [inspectionRefreshKey, setInspectionRefreshKey] = useState(0);
@@ -34,6 +36,15 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({ onNavigateTo
     loadStats();
   }, []);
 
+  // Re-load stats whenever the active farm changes.
+  // The backend officer stats endpoint scopes to the authenticated officer's district_id,
+  // which is server-enforced. The farm selector helps the officer navigate between
+  // the detail views of farms in their jurisdiction.
+  useEffect(() => {
+    loadStats();
+    setInspectionRefreshKey((key) => key + 1);
+  }, [activeFarm.id]);
+
   const total = stats
     ? stats.lowRiskFarms + stats.mediumRiskFarms + stats.highRiskFarms
     : 0;
@@ -49,9 +60,16 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({ onNavigateTo
             <Landmark size={28} color="#FFFFFF" />
           </div>
           <div>
-            <span className="eyebrow-text">GOVERNMENT OF INDIA • ANIMAL HUSBANDRY & BIOSECURITY</span>
+            <span className="eyebrow-text">GOVERNMENT OF INDIA • ANIMAL HUSBANDRY &amp; BIOSECURITY</span>
             <h2 className="view-title">Regional Command Center Dashboard</h2>
-            <p className="view-subtitle">District Surveillance Portal</p>
+            <p className="view-subtitle">
+              District Surveillance Portal
+              {activeFarm && allFarms.length > 1 && (
+                <span className="active-farm-indicator">
+                  {" "}• Monitoring: <strong>{activeFarm.name}</strong> ({activeFarm.location})
+                </span>
+              )}
+            </p>
           </div>
         </div>
 
@@ -68,7 +86,7 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({ onNavigateTo
           <div className="stat-box">
             <span className="stat-label">Total Registered Farms</span>
             <strong className="stat-val">{stats.totalRegisteredFarms}</strong>
-            <span className="stat-sub">Poultry & Swine Units</span>
+            <span className="stat-sub">Poultry &amp; Swine Units</span>
           </div>
           <div className="stat-box border-red">
             <span className="stat-label">High-Risk Farms</span>
@@ -110,6 +128,7 @@ export const OfficerDashboard: React.FC<OfficerDashboardProps> = ({ onNavigateTo
 
       <div className="officer-main-grid">
         <div className="priority-list-card priority-list-full">
+          {/* refreshKey changes when activeFarm or a schedule action triggers a reload */}
           <ScheduledInspectionsPanel refreshKey={inspectionRefreshKey} />
         </div>
 
