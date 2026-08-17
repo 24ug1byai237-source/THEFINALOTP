@@ -66,12 +66,13 @@ class Settings(BaseSettings):
             return storage[: -len("/uploads")]
         return "http://localhost:8000"
 
-    @field_validator("DATABASE_URL")
+    @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def normalize_database_url(cls, value: str) -> str:
-        # Render Postgres uses postgres:// — SQLAlchemy expects postgresql://
-        if value.startswith("postgres://"):
-            return value.replace("postgres://", "postgresql://", 1)
+        if isinstance(value, str):
+            value = value.strip()
+            if value.startswith("postgres://"):
+                return value.replace("postgres://", "postgresql://", 1)
         return value
 
     @property
