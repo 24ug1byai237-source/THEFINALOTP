@@ -700,6 +700,7 @@ export const healthRecordService = {
   },
 };
 
+export const authService = {
   async sendOtp(phone: string) {
     const res = await apiFetch<{ message: string; devCode?: string; dev_code?: string }>("/auth/otp/send", {
       method: "POST",
