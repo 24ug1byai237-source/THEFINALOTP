@@ -9,6 +9,7 @@ from app.models.notification import Notification
 from app.models.health import HealthRecord, ChecklistItem
 from app.models.spatial import VetFacility, SpatialZone
 from app.models.file_upload import FileUpload
+from app.models.otp_request import OTPRequest
 
 __all__ = [
     "District",
@@ -32,4 +33,5 @@ __all__ = [
     "VetFacility",
     "SpatialZone",
     "FileUpload",
+    "OTPRequest",
 ]

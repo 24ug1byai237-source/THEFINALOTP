@@ -88,6 +88,8 @@ export const CorrectiveActionsList: React.FC = () => {
   };
 
   useEffect(() => {
+    setActions([]);
+    setSelectedActionForEvidence(null);
     fetchActions();
   }, [role, activeFarm.id]);
 

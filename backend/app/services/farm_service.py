@@ -21,39 +21,40 @@ from app.utils.helpers import farm_risk_level, generate_id
 DEMO_FARMER_EMAIL = "farmer@bioshield.local"
 
 
-class FarmService:
-    @staticmethod
-    def _accessible_farm_ids(user: User | None) -> list[str] | None:
-        if user is None:
-            return []
-        if user.role == UserRole.FARMER:
-            return [a.farm_id for a in user.farm_assignments]
-        if user.role == UserRole.VETERINARIAN:
-            assigned = [a.farm_id for a in user.farm_assignments]
-            if assigned:
-                return assigned
-            return None
-        if user.role == UserRole.OFFICER:
-            return None
-        return None
 
+class FarmService:
     @staticmethod
     def list_farms(db: Session, user: User | None = None) -> list[Farm]:
         if user is None:
             return []
         query = db.query(Farm).filter(Farm.registration_status == RegistrationStatus.REGISTERED)
-        if user.role == UserRole.OFFICER and user.district_id:
-            query = query.filter(Farm.district_id == user.district_id)
-        elif user.role == UserRole.VETERINARIAN and user.district_id:
-            assigned = [a.farm_id for a in user.farm_assignments]
-            if not assigned:
+
+        if user.role == UserRole.OFFICER:
+            # Officers see all farms in their assigned district.
+            # Officers with no district_id have national-level access.
+            if user.district_id:
                 query = query.filter(Farm.district_id == user.district_id)
 
-        farm_ids = FarmService._accessible_farm_ids(user)
-        if farm_ids is not None:
+        elif user.role == UserRole.VETERINARIAN:
+            assigned = [a.farm_id for a in user.farm_assignments]
+            if assigned:
+                # Vet has explicit farm assignments — restrict to those ONLY.
+                # No district-based fallback when assignments exist.
+                query = query.filter(Farm.id.in_(assigned))
+            elif user.district_id:
+                # Vet has no explicit assignments but has a district — show
+                # all registered farms in their district (district-level vet).
+                query = query.filter(Farm.district_id == user.district_id)
+            else:
+                # Vet has neither explicit assignments nor a district — no farms.
+                return []
+
+        elif user.role == UserRole.FARMER:
+            farm_ids = [a.farm_id for a in user.farm_assignments]
             if not farm_ids:
                 return []
             query = query.filter(Farm.id.in_(farm_ids))
+
         return query.order_by(Farm.biosecurity_score.asc()).all()
 
     @staticmethod
@@ -73,19 +74,36 @@ class FarmService:
             if farm.id not in allowed:
                 raise ForbiddenError("You do not have access to this farm.")
         elif user.role == UserRole.VETERINARIAN:
-            allowed = {a.farm_id for a in user.farm_assignments}
-            if allowed:
-                if farm.id not in allowed:
-                    raise ForbiddenError("You do not have access to this farm.")
-            elif user.district_id and farm.district_id != user.district_id:
-                raise ForbiddenError("Farm is outside your assigned district scope.")
+            assigned = {a.farm_id for a in user.farm_assignments}
+            if assigned:
+                # Vet with explicit assignments → must be in that set.
+                if farm.id not in assigned:
+                    raise ForbiddenError(
+                        "You are not authorized to access this farm. "
+                        "Contact an administrator to be assigned to this farm."
+                    )
+            elif user.district_id:
+                # Vet with district but no explicit assignments → district scope.
+                if farm.district_id != user.district_id:
+                    raise ForbiddenError(
+                        "This farm is outside your assigned district scope."
+                    )
+            # Vet with neither explicit assignments nor district → block all.
+            elif not assigned and not user.district_id:
+                raise ForbiddenError(
+                    "Veterinarian account has no farm assignments or district configured."
+                )
         elif user.role == UserRole.OFFICER:
             if user.district_id and farm.district_id != user.district_id:
-                raise ForbiddenError("Farm is outside your assigned district scope.")
+                raise ForbiddenError(
+                    "This farm is outside your assigned district scope."
+                )
 
     @staticmethod
     def create_farm(db: Session, payload: FarmCreate, user: User | None = None) -> Farm:
         farm_id = generate_id("FARM-JH")
+        # Use payload district if provided. Do NOT silently assign DEFAULT_DISTRICT_ID
+        # to prevent all new farms from defaulting to Ranchi when unspecified.
         district_id = payload.district_id or settings.DEFAULT_DISTRICT_ID
         farm = Farm(
             id=farm_id,

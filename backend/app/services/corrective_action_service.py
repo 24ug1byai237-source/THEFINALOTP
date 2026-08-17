@@ -113,11 +113,15 @@ class CorrectiveActionService:
             deadline = datetime.fromisoformat(payload.deadline).date()
         except ValueError as exc:
             raise ValidationAppError("Invalid deadline format.") from exc
+        # Deduplicate by (farm_id, title, incident_id): prevents duplicate cards
+        # for the same action on the same incident, while still allowing the same
+        # action title to be used for different incidents on the same farm.
         existing = (
             db.query(CorrectiveAction)
             .filter(
                 CorrectiveAction.farm_id == farm.id,
                 CorrectiveAction.title == payload.title,
+                CorrectiveAction.incident_id == payload.incident_id,
                 CorrectiveAction.status.notin_([
                     CorrectiveActionStatus.VERIFIED,
                     CorrectiveActionStatus.CLOSED,

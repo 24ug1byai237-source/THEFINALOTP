@@ -2339,3 +2339,23 @@
   opacity: 0.85;
   font-weight: 400;
 }
+
+/* Corrective Actions Grid — 3 columns on desktop */
+.corrective-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .corrective-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .corrective-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}

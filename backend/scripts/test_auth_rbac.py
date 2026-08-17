@@ -127,10 +127,34 @@ def run_tests():
     farmer_headers = {"Authorization": f"Bearer {farmer_token}"}
     print("[OK] Farmer password login successful")
 
-    otp_verify = client.post("/api/v1/auth/otp/verify", json={"phone": "+91 9876543210", "code": "123456"})
+    # Test wrong OTP rejection (Must return 401 Unauthorized)
+    wrong_otp = client.post("/api/v1/auth/otp/verify", json={"phone": "+91 9876543210", "code": "000000"})
+    assert wrong_otp.status_code == 401, f"Expected 401 for wrong OTP, got {wrong_otp.status_code}"
+    print("[OK] Wrong/unseeded OTP verification rejected with 401 Unauthorized")
+
+    # Insert a valid OTP request record directly in test DB to simulate a real sent OTP
+    from app.models.otp_request import OTPRequest
+    from datetime import datetime, timedelta, timezone
+    with Session(engine) as test_db_session:
+        test_otp = OTPRequest(
+            phone="+91 9876543210",
+            code="854219",
+            used=False,
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+        )
+        test_db_session.add(test_otp)
+        test_db_session.commit()
+
+    # Test valid OTP verification
+    otp_verify = client.post("/api/v1/auth/otp/verify", json={"phone": "+91 9876543210", "code": "854219"})
     assert otp_verify.status_code == 200, f"Farmer OTP login failed: {otp_verify.text}"
     assert otp_verify.json()["user"]["role"] == "farmer"
-    print("[OK] Farmer OTP verification & login successful (Role: farmer)")
+    print("[OK] Real OTP verification & login successful (Role: farmer)")
+
+    # Test OTP reuse rejection (Must return 401 Unauthorized after used=True)
+    otp_reuse = client.post("/api/v1/auth/otp/verify", json={"phone": "+91 9876543210", "code": "854219"})
+    assert otp_reuse.status_code == 401, f"Expected 401 for reused OTP, got {otp_reuse.status_code}"
+    print("[OK] Reused OTP verification rejected with 401 Unauthorized")
 
     # 3. Login as Vet
     vet_login = client.post("/api/v1/auth/login", json={"email": "vet@bioshield.local", "password": "vet123"})

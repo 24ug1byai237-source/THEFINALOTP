@@ -22,8 +22,8 @@ export const LoginPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<UserRole>("farmer");
 
   // Farmer OTP state
-  const [phone, setPhone] = useState("+91 9876543210");
-  const [otpCode, setOtpCode] = useState("123456");
+  const [phone, setPhone] = useState("");
+  const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpMessage, setOtpMessage] = useState("");
@@ -39,8 +39,8 @@ export const LoginPage: React.FC = () => {
     setError("");
     setOtpMessage("");
     if (role === "farmer") {
-      setPhone("+91 9876543210");
-      setOtpCode("123456");
+      setPhone("");
+      setOtpCode("");
       setOtpSent(false);
     } else if (role === "veterinarian") {
       setEmail(DEMO_CREDENTIALS.veterinarian.email);
@@ -62,9 +62,9 @@ export const LoginPage: React.FC = () => {
     try {
       const msg = await sendOTP(phone);
       setOtpSent(true);
-      setOtpMessage(msg || "OTP sent successfully! Demo code: 123456");
+      setOtpMessage(msg || "OTP sent successfully to your phone.");
     } catch (err: any) {
-      setError(err?.message || "Failed to send OTP. Please try again.");
+      setError(err?.message || "Failed to send OTP. Please check provider configuration.");
     } finally {
       setOtpLoading(false);
     }

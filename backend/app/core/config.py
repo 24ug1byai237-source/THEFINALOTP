@@ -33,6 +33,26 @@ class Settings(BaseSettings):
 
     API_V1_PREFIX: str = "/api/v1"
 
+    # ------------------------------------------------------------------ #
+    # OTP / SMS provider — Twilio Verify                                   #
+    # Leave empty to run without real SMS (all OTP sends return 503).      #
+    # ------------------------------------------------------------------ #
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_VERIFY_SERVICE_SID: str = ""
+
+    # OTP time-to-live in seconds (default 10 minutes)
+    OTP_TTL_SECONDS: int = 600
+
+    @property
+    def twilio_configured(self) -> bool:
+        """True only when all three Twilio credentials are present."""
+        return bool(
+            self.TWILIO_ACCOUNT_SID.strip()
+            and self.TWILIO_AUTH_TOKEN.strip()
+            and self.TWILIO_VERIFY_SERVICE_SID.strip()
+        )
+
     @property
     def public_api_base(self) -> str:
         explicit = self.PUBLIC_API_URL.strip()

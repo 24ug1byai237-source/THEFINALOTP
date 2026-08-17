@@ -92,11 +92,15 @@ class ActionPlanService:
         if item.veterinary_note:
             description = f"{description}\n\nVeterinary note: {item.veterinary_note}"
 
+        # Deduplicate by (farm_id, title, incident_id): this prevents the same
+        # corrective action from being created twice for the same incident while
+        # still allowing genuinely different incidents to have same-titled actions.
         existing = (
             db.query(CorrectiveAction)
             .filter(
                 CorrectiveAction.farm_id == farm_id,
                 CorrectiveAction.title == item.title,
+                CorrectiveAction.incident_id == incident_id,
                 CorrectiveAction.status.notin_([
                     CorrectiveActionStatus.VERIFIED,
                     CorrectiveActionStatus.CLOSED,

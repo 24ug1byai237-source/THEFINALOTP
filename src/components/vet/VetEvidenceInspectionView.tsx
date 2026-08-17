@@ -30,9 +30,12 @@ export const VetEvidenceInspectionView: React.FC = () => {
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [displayEvidence, setDisplayEvidence] = useState<CorrectiveAction["submittedEvidence"]>(undefined);
 
-  // Sync farmFilter when activeFarm changes
+  // Sync farmFilter and clear stale selected item when activeFarm changes
   useEffect(() => {
     setFarmFilter(activeFarm.id);
+    setSelectedId(null);
+    setDisplayEvidence(undefined);
+    setAnalysis(null);
   }, [activeFarm.id]);
 
   const load = useCallback(async (options?: { silent?: boolean }) => {
