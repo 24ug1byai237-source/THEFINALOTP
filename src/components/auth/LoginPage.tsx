@@ -210,38 +210,39 @@ export const LoginPage: React.FC = () => {
                   </div>
                 )}
 
-                {devCode && (
-                  <div className="whatsapp-otp-box" style={{ margin: "14px 0", padding: "14px", background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: "10px", textAlign: "center" }}>
-                    <p style={{ margin: "0 0 6px 0", color: "#166534", fontSize: "13px", fontWeight: 600 }}>
-                      Generated OTP Code:
-                    </p>
-                    <div style={{ fontSize: "24px", fontWeight: 800, letterSpacing: "4px", color: "#15803d", marginBottom: "10px", fontFamily: "monospace" }}>
+                <div className="whatsapp-otp-box" style={{ margin: "14px 0", padding: "14px", background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: "10px", textAlign: "center" }}>
+                  <p style={{ margin: "0 0 4px 0", color: "#166534", fontSize: "13px", fontWeight: 600 }}>
+                    Verification Code for {phone}:
+                  </p>
+                  {devCode && (
+                    <div style={{ fontSize: "28px", fontWeight: 800, letterSpacing: "6px", color: "#15803d", marginBottom: "10px", fontFamily: "monospace" }}>
                       {devCode}
                     </div>
-                    <a
-                      href={`https://api.whatsapp.com/send?phone=${encodeURIComponent(phone.replace(/\D/g, ""))}&text=${encodeURIComponent(`Your AgriSentinel Verification Code is: ${devCode}`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-whatsapp-otp"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        background: "#25D366",
-                        color: "#FFFFFF",
-                        padding: "10px 16px",
-                        borderRadius: "8px",
-                        fontSize: "13px",
-                        fontWeight: 700,
-                        textDecoration: "none",
-                        width: "100%",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <span>📱 Open in WhatsApp to Send/View Code</span>
-                    </a>
-                  </div>
-                )}
+                  )}
+                  <a
+                    href={`https://api.whatsapp.com/send?phone=${encodeURIComponent(phone.replace(/\D/g, ""))}&text=${encodeURIComponent(`Your AgriSentinel Verification Code is: ${devCode || ""}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-whatsapp-otp"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      background: "#25D366",
+                      color: "#FFFFFF",
+                      padding: "12px 18px",
+                      borderRadius: "8px",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      width: "100%",
+                      justifyContent: "center",
+                      boxShadow: "0 2px 8px rgba(37, 211, 102, 0.3)",
+                    }}
+                  >
+                    <span>📱 Open in WhatsApp to View & Send Code</span>
+                  </a>
+                </div>
 
                 <div className="form-group">
                   <label className="form-label">Enter 6-Digit OTP Code</label>

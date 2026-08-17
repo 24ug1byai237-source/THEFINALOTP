@@ -152,6 +152,7 @@ class AuthService:
         return {
             "message": f"OTP verification code sent to {clean_phone}.",
             "dev_code": code,
+            "devCode": code,
         }
 
     @staticmethod
