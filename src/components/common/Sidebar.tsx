@@ -75,16 +75,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         )}
 
-        <button
-          className={`sidebar-link ${activeTab === "passport" ? "active" : ""}`}
-          onClick={() => {
-            setActiveTab("passport");
-            onOpenPassport();
-          }}
-        >
-          <FileBadge size={18} />
-          <span>{t("nav.passport")}</span>
-        </button>
+        {role === "farmer" && (
+          <button
+            className={`sidebar-link ${activeTab === "passport" ? "active" : ""}`}
+            onClick={() => {
+              setActiveTab("passport");
+              onOpenPassport();
+            }}
+          >
+            <FileBadge size={18} />
+            <span>{t("nav.passport")}</span>
+          </button>
+        )}
 
         <button
           className={`sidebar-link ${activeTab === "risk" ? "active" : ""}`}
@@ -94,15 +96,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span>{t("nav.risk")}</span>
         </button>
 
-        <button
-          className={`sidebar-link ${activeTab === "incident" ? "active" : ""}`}
-          onClick={() => setActiveTab("incident")}
-        >
-          <ShieldAlert size={18} />
-          <span>
-            {role === "veterinarian" ? t("nav.incident.vet") : t("nav.incident")}
-          </span>
-        </button>
+        {(role === "farmer" || role === "veterinarian") && (
+          <button
+            className={`sidebar-link ${activeTab === "incident" ? "active" : ""}`}
+            onClick={() => setActiveTab("incident")}
+          >
+            <ShieldAlert size={18} />
+            <span>
+              {role === "veterinarian" ? t("nav.incident.vet") : t("nav.incident")}
+            </span>
+          </button>
+        )}
 
         {role === "veterinarian" && (
           <button

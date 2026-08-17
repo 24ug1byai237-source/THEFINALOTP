@@ -51,18 +51,20 @@ function TabLoadingFallback() {
   return <div className="loading-state">Loading…</div>;
 }
 
+// Each role is restricted to ONLY its own tabs. Farmer-only surfaces
+// (Biosecurity Passport, incident submission) are never granted to the
+// veterinarian or government officer so cross-role UI can never render.
 const TABS_BY_ROLE: Record<UserRole, NavTab[]> = {
   farmer: ["overview", "action-center", "passport", "risk", "incident", "actions", "gis"],
   veterinarian: [
     "overview",
-    "passport",
     "risk",
     "incident",
     "evidence-inspection",
     "actions",
     "gis",
   ],
-  officer: ["overview", "passport", "risk", "incident", "actions", "gis", "officer"],
+  officer: ["overview", "risk", "actions", "gis", "officer"],
 };
 
 function AppContent() {
@@ -143,7 +145,8 @@ function AppContent() {
             </ErrorBoundary>
           )}
 
-          {effectiveTab === "passport" && (
+          {/* Passport is a Farmer-only surface — double-guarded so vet/officer never see it */}
+          {effectiveTab === "passport" && canViewFarmer && (
             <FarmerDashboard
               onOpenPassport={() => setIsPassportOpen(true)}
               onOpenReportIncident={() => setIsReportIncidentOpen(true)}
@@ -153,24 +156,13 @@ function AppContent() {
             />
           )}
 
-          {effectiveTab === "action-center" && (
-            canViewFarmer ? (
-              <ErrorBoundary>
-                <BiosecurityActionCenter
-                  onNavigateToActions={() => setActiveTab("actions")}
-                />
-              </ErrorBoundary>
-            ) : (
-              <ErrorBoundary>
-                <Suspense fallback={<TabLoadingFallback />}>
-                  {canViewOfficer ? (
-                    <OfficerDashboard onNavigateToGis={() => setActiveTab("gis")} />
-                  ) : (
-                    canViewVet && <VetDashboard />
-                  )}
-                </Suspense>
-              </ErrorBoundary>
-            )
+          {/* Action Center is a Farmer-only surface */}
+          {effectiveTab === "action-center" && canViewFarmer && (
+            <ErrorBoundary>
+              <BiosecurityActionCenter
+                onNavigateToActions={() => setActiveTab("actions")}
+              />
+            </ErrorBoundary>
           )}
 
           {effectiveTab === "risk" && (
@@ -188,13 +180,15 @@ function AppContent() {
                 {canViewVet ? (
                   <VetDashboard />
                 ) : (
-                  <FarmerDashboard
-                    onOpenPassport={() => setIsPassportOpen(true)}
-                    onOpenReportIncident={() => setIsReportIncidentOpen(true)}
-                    onNavigateToActions={() => setActiveTab("actions")}
-                    onNavigateToRisk={() => setActiveTab("risk")}
-                    onNavigateToActionCenter={() => setActiveTab("action-center")}
-                  />
+                  canViewFarmer && (
+                    <FarmerDashboard
+                      onOpenPassport={() => setIsPassportOpen(true)}
+                      onOpenReportIncident={() => setIsReportIncidentOpen(true)}
+                      onNavigateToActions={() => setActiveTab("actions")}
+                      onNavigateToRisk={() => setActiveTab("risk")}
+                      onNavigateToActionCenter={() => setActiveTab("action-center")}
+                    />
+                  )
                 )}
               </Suspense>
             </ErrorBoundary>

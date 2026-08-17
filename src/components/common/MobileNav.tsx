@@ -7,6 +7,8 @@ import {
   CheckSquare,
   MapPin,
   Target,
+  FileSearch,
+  FileSpreadsheet,
   X,
 } from "lucide-react";
 import type { NavTab } from "./Sidebar";
@@ -80,17 +82,19 @@ export const MobileNav: React.FC<MobileNavProps> = ({
             </button>
           )}
 
-          <button
-            className={`drawer-item ${activeTab === "passport" ? "active" : ""}`}
-            onClick={() => {
-              setActiveTab("passport");
-              onOpenPassport();
-              onClose();
-            }}
-          >
-            <FileBadge size={20} />
-            <span>{t("nav.passport")}</span>
-          </button>
+          {role === "farmer" && (
+            <button
+              className={`drawer-item ${activeTab === "passport" ? "active" : ""}`}
+              onClick={() => {
+                setActiveTab("passport");
+                onOpenPassport();
+                onClose();
+              }}
+            >
+              <FileBadge size={20} />
+              <span>{t("nav.passport")}</span>
+            </button>
+          )}
 
           <button
             className={`drawer-item ${activeTab === "risk" ? "active" : ""}`}
@@ -103,16 +107,31 @@ export const MobileNav: React.FC<MobileNavProps> = ({
             <span>{t("nav.risk")}</span>
           </button>
 
-          <button
-            className={`drawer-item ${activeTab === "incident" ? "active" : ""}`}
-            onClick={() => {
-              setActiveTab("incident");
-              onClose();
-            }}
-          >
-            <ShieldAlert size={20} />
-            <span>{t("nav.incident")}</span>
-          </button>
+          {(role === "farmer" || role === "veterinarian") && (
+            <button
+              className={`drawer-item ${activeTab === "incident" ? "active" : ""}`}
+              onClick={() => {
+                setActiveTab("incident");
+                onClose();
+              }}
+            >
+              <ShieldAlert size={20} />
+              <span>{role === "veterinarian" ? t("nav.incident.vet") : t("nav.incident")}</span>
+            </button>
+          )}
+
+          {role === "veterinarian" && (
+            <button
+              className={`drawer-item ${activeTab === "evidence-inspection" ? "active" : ""}`}
+              onClick={() => {
+                setActiveTab("evidence-inspection");
+                onClose();
+              }}
+            >
+              <FileSearch size={20} />
+              <span>Evidence Inspection</span>
+            </button>
+          )}
 
           <button
             className={`drawer-item ${activeTab === "actions" ? "active" : ""}`}
@@ -135,19 +154,34 @@ export const MobileNav: React.FC<MobileNavProps> = ({
             <MapPin size={20} />
             <span>{t("nav.gis")}</span>
           </button>
+
+          {role === "officer" && (
+            <button
+              className={`drawer-item ${activeTab === "officer" ? "active" : ""}`}
+              onClick={() => {
+                setActiveTab("officer");
+                onClose();
+              }}
+            >
+              <FileSpreadsheet size={20} />
+              <span>{t("nav.officer")}</span>
+            </button>
+          )}
         </div>
 
-        <div className="mobile-drawer-footer">
-          <button
-            className="btn-primary-action w-full"
-            onClick={() => {
-              onOpenReportIncident();
-              onClose();
-            }}
-          >
-            + {t("dashboard.reportIncident")}
-          </button>
-        </div>
+        {role === "farmer" && (
+          <div className="mobile-drawer-footer">
+            <button
+              className="btn-primary-action w-full"
+              onClick={() => {
+                onOpenReportIncident();
+                onClose();
+              }}
+            >
+              + {t("dashboard.reportIncident")}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="mobile-bottom-bar">
@@ -169,21 +203,45 @@ export const MobileNav: React.FC<MobileNavProps> = ({
           </button>
         )}
 
-        <button
-          className={`bottom-bar-item ${activeTab === "passport" ? "active" : ""}`}
-          onClick={() => {
-            setActiveTab("passport");
-            onOpenPassport();
-          }}
-        >
-          <FileBadge size={20} />
-          <span>{t("nav.passport")}</span>
-        </button>
+        {role === "farmer" && (
+          <button
+            className={`bottom-bar-item ${activeTab === "passport" ? "active" : ""}`}
+            onClick={() => {
+              setActiveTab("passport");
+              onOpenPassport();
+            }}
+          >
+            <FileBadge size={20} />
+            <span>{t("nav.passport")}</span>
+          </button>
+        )}
 
-        <button className="bottom-bar-item highlight-btn" onClick={onOpenReportIncident}>
-          <ShieldAlert size={22} />
-          <span>{t("nav.report")}</span>
-        </button>
+        {role === "farmer" && (
+          <button className="bottom-bar-item highlight-btn" onClick={onOpenReportIncident}>
+            <ShieldAlert size={22} />
+            <span>{t("nav.report")}</span>
+          </button>
+        )}
+
+        {role === "veterinarian" && (
+          <button
+            className={`bottom-bar-item ${activeTab === "evidence-inspection" ? "active" : ""}`}
+            onClick={() => setActiveTab("evidence-inspection")}
+          >
+            <FileSearch size={20} />
+            <span>Evidence</span>
+          </button>
+        )}
+
+        {role === "officer" && (
+          <button
+            className={`bottom-bar-item ${activeTab === "officer" ? "active" : ""}`}
+            onClick={() => setActiveTab("officer")}
+          >
+            <FileSpreadsheet size={20} />
+            <span>{t("nav.officer")}</span>
+          </button>
+        )}
 
         <button
           className={`bottom-bar-item ${activeTab === "actions" ? "active" : ""}`}
