@@ -4,6 +4,7 @@ Run: python scripts/seed.py
 """
 
 import sys
+from datetime import date, timedelta
 import os
 
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -101,12 +102,15 @@ def seed():
         db.flush()
 
         # Create Passports for farms
+        today = date.today()
         p1 = BiosecurityPassport(
             id="PASS-FARM-JH-2026-0487",
             farm_id=farm1.id,
             passport_qr_code=f"BS-PASSPORT-{farm1.id}-VERIFIED",
             compliance_status=ComplianceStatus.COMPLIANT,
             risk_trend=RiskTrend.IMPROVING,
+            issue_date=today,
+            last_inspection_date=today - timedelta(days=30),
         )
         p2 = BiosecurityPassport(
             id="PASS-FARM-JH-2026-0102",
@@ -114,6 +118,8 @@ def seed():
             passport_qr_code=f"BS-PASSPORT-{farm2.id}-ATTENTION",
             compliance_status=ComplianceStatus.NON_COMPLIANT,
             risk_trend=RiskTrend.DETERIORATING,
+            issue_date=today,
+            last_inspection_date=today - timedelta(days=45),
         )
         db.add_all([p1, p2])
 
