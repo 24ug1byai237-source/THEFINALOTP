@@ -211,7 +211,13 @@ export const LoginPage: React.FC = () => {
                 )}
 
                 {devCode && (
-                  <div className="whatsapp-otp-box" style={{ margin: "10px 0", textAlign: "center" }}>
+                  <div className="whatsapp-otp-box" style={{ margin: "14px 0", padding: "14px", background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: "10px", textAlign: "center" }}>
+                    <p style={{ margin: "0 0 6px 0", color: "#166534", fontSize: "13px", fontWeight: 600 }}>
+                      Generated OTP Code:
+                    </p>
+                    <div style={{ fontSize: "24px", fontWeight: 800, letterSpacing: "4px", color: "#15803d", marginBottom: "10px", fontFamily: "monospace" }}>
+                      {devCode}
+                    </div>
                     <a
                       href={`https://api.whatsapp.com/send?phone=${encodeURIComponent(phone.replace(/\D/g, ""))}&text=${encodeURIComponent(`Your AgriSentinel Verification Code is: ${devCode}`)}`}
                       target="_blank"
@@ -232,7 +238,7 @@ export const LoginPage: React.FC = () => {
                         justifyContent: "center",
                       }}
                     >
-                      <span>📱 Re-open WhatsApp to View Verification Code</span>
+                      <span>📱 Open in WhatsApp to Send/View Code</span>
                     </a>
                   </div>
                 )}
