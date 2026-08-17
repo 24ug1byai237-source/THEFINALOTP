@@ -32,7 +32,7 @@ interface AuthContextType {
   setActiveFarm: (farm: Farm) => void;
   allFarms: Farm[];
   refreshFarms: (force?: boolean) => Promise<void>;
-  sendOTP: (phone: string) => Promise<string>;
+  sendOTP: (phone: string) => Promise<{ message: string; devCode?: string }>;
   loginWithOTP: (phone: string, code: string) => Promise<void>;
   loginWithCredentials: (email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -112,9 +112,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener("focus", onFocus);
   }, [isAuthenticated, loadFarms]);
 
-  const sendOTP = useCallback(async (phone: string): Promise<string> => {
-    const res = await authService.sendOtp(phone);
-    return res.message;
+  const sendOTP = useCallback(async (phone: string): Promise<{ message: string; devCode?: string }> => {
+    return await authService.sendOtp(phone);
   }, []);
 
   // Internal post-login handler — sets role from the server response

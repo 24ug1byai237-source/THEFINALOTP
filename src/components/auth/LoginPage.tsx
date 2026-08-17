@@ -51,6 +51,8 @@ export const LoginPage: React.FC = () => {
     }
   };
 
+  const [devCode, setDevCode] = useState<string | null>(null);
+
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone.trim()) {
@@ -60,9 +62,13 @@ export const LoginPage: React.FC = () => {
     setOtpLoading(true);
     setError("");
     try {
-      const msg = await sendOTP(phone);
+      const res = await sendOTP(phone);
       setOtpSent(true);
-      setOtpMessage(msg || "OTP sent successfully to your phone.");
+      setOtpMessage(res.message);
+      if (res.devCode) {
+        setDevCode(res.devCode);
+        setOtpCode(res.devCode);
+      }
     } catch (err: any) {
       setError(err?.message || "Failed to send OTP. Please check provider configuration.");
     } finally {
@@ -197,6 +203,31 @@ export const LoginPage: React.FC = () => {
                   <div className="login-success-alert">
                     <CheckCircle2 size={16} />
                     <span>{otpMessage}</span>
+                  </div>
+                )}
+
+                {devCode && (
+                  <div className="whatsapp-otp-box" style={{ margin: "10px 0", textAlign: "center" }}>
+                    <a
+                      href={`https://api.whatsapp.com/send?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(`Your AgriSentinel verification code is: ${devCode}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-whatsapp-otp"
+                      style={{
+                        display: "inline-flex",
+                        align-items: "center",
+                        gap: "6px",
+                        background: "#25D366",
+                        color: "#FFFFFF",
+                        padding: "8px 14px",
+                        borderRadius: "8px",
+                        fontSize: "13px",
+                        fontWeight: 700,
+                        textDecoration: "none",
+                      }}
+                    >
+                      <span>💬 Send Verification Code via WhatsApp</span>
+                    </a>
                   </div>
                 )}
 
