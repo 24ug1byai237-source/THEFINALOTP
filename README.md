@@ -68,16 +68,6 @@ graph TD
 
 ---
 
-## 🔐 Pre-Seeded SIH Demo Credentials
-
-| Role | Email | Password | Assigned Portal |
-| :--- | :--- | :--- | :--- |
-| 👨‍🌾 **Farmer** | `farmer@bioshield.local` | `farmer123` | Farmer Operations |
-| 🩺 **Veterinarian** | `vet@bioshield.local` | `vet123` | Veterinary Verification |
-| 🏛️ **Government Officer** | `officer@bioshield.local` | `officer123` | Government Field Command |
-
----
-
 ## 🛠️ Local Development Setup
 
 ### 1. Frontend Setup (React + Vite)
@@ -111,25 +101,6 @@ python scripts/seed.py
 # Start uvicorn server
 uvicorn app.main:app --reload --port 8000
 ```
-
----
-
-## ⚙️ Environment Variables Configuration
-
-### Vercel (Frontend)
-
-| Key | Example Value | Description |
-|:---|:---|:---|
-| `VITE_API_BASE_URL` | `https://agrisentinel-api-me0x.onrender.com` | Live backend API base URL |
-| `VITE_APP_ENV` | `production` | Production environment flag |
-
-### Render (Backend)
-
-| Key | Example Value | Description |
-|:---|:---|:---|
-| `DATABASE_URL` | `postgresql://user:pass@host:5432/dbname` | PostgreSQL connection string |
-| `JWT_SECRET` | `your-secure-random-jwt-secret` | Cryptographic key for signing JWTs |
-| `CORS_ORIGINS` | `https://thefinalotp-5mjx.vercel.app,http://localhost:5173` | Allowed CORS origin endpoints |
 
 ---
 
