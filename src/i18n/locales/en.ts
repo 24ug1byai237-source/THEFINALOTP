@@ -25,6 +25,17 @@ const en: TranslationDictionary = {
   "role.officer": "Govt Officer",
   "role.liveMonitor": "Live Monitor",
 
+  "auth.chooseRole": "Choose your role:",
+  "auth.selectFarm": "Select Your Farm *",
+  "auth.signIn": "Sign In",
+  "auth.createAccount": "Create Account",
+  "auth.email": "Email Address *",
+  "auth.password": "Password *",
+  "auth.fullName": "Full Name *",
+  "auth.phone": "Phone Number (Optional)",
+  "auth.districtScope": "District Scope",
+  "auth.quickDemo": "⚡ Quick SIH Demo Sign-In (Real Auth):",
+
   "common.loading": "Loading...",
   "common.error.load": "Unable to load data. Please refresh the page.",
   "common.error.retry": "Please try again.",

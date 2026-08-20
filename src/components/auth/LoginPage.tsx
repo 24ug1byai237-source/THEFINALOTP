@@ -14,9 +14,13 @@ import {
 } from "lucide-react";
 import type { UserRole } from "../../types";
 import { useAuth, DEMO_CREDENTIALS } from "../../context/AuthContext";
+import { useTranslation } from "../../context/LocaleContext";
+import { translateData } from "../../i18n/dataTranslations";
+import { LanguageSelector } from "../common/LanguageSelector";
 
 export const LoginPage: React.FC = () => {
   const { loginWithCredentials, registerByRole, allFarms, setActiveFarm } = useAuth();
+  const { t, locale } = useTranslation();
 
   // Role Selection (Farmer | Veterinarian | Government Officer)
   const [activeRole, setActiveRole] = useState<UserRole>("farmer");
@@ -53,88 +57,99 @@ export const LoginPage: React.FC = () => {
     setError("");
     setSuccessMsg("");
 
-      if (activeRole === "farmer") {
-        const found = allFarms.find((f) => f.id === selectedFarmId);
-        if (found) setActiveFarm(found);
+    if (activeRole === "farmer") {
+      const found = allFarms.find((f) => f.id === selectedFarmId);
+      if (found) {
+        setActiveFarm(found);
+        localStorage.setItem("selected_farm_id", found.id);
       }
+    }
 
-      if (mode === "signin") {
-        if (!email.trim() || !password.trim()) {
-          setError("Please enter your email and password.");
-          return;
-        }
-        setLoading(true);
-        try {
-          await loginWithCredentials(email.trim(), password);
-        } catch (err: any) {
-          setError(err?.message || "Invalid credentials. Please try again.");
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        if (!fullName.trim() || !email.trim() || !password.trim()) {
-          setError("Full Name, Email, and Password are required to create an account.");
-          return;
-        }
-        setLoading(true);
-        try {
-          await registerByRole({
-            fullName: fullName.trim(),
-            email: email.trim(),
-            password,
-            role: activeRole,
-            phone: phone.trim() || undefined,
-            districtId,
-          });
-          setSuccessMsg(`Account created successfully as ${activeRole.toUpperCase()}! Redirecting...`);
-        } catch (err: any) {
-          setError(err?.message || "Failed to create account. Email may already be registered.");
-        } finally {
-          setLoading(false);
-        }
+    if (mode === "signin") {
+      if (!email.trim() || !password.trim()) {
+        setError("Please enter your email and password.");
+        return;
       }
-    };
-
-    const handleQuickDemo = async (role: UserRole) => {
       setLoading(true);
-      setError("");
-      setSuccessMsg("");
       try {
-        if (role === "farmer") {
-          const found = allFarms.find((f) => f.id === selectedFarmId);
-          if (found) setActiveFarm(found);
-        }
-        const creds = DEMO_CREDENTIALS[role];
-        await loginWithCredentials(creds.email, creds.password);
+        await loginWithCredentials(email.trim(), password);
       } catch (err: any) {
-        setError(err?.message || "Demo login failed. Please ensure backend is running.");
+        setError(err?.message || "Invalid credentials. Please try again.");
       } finally {
         setLoading(false);
       }
-    };
+    } else {
+      if (!fullName.trim() || !email.trim() || !password.trim()) {
+        setError("Full Name, Email, and Password are required to create an account.");
+        return;
+      }
+      setLoading(true);
+      try {
+        await registerByRole({
+          fullName: fullName.trim(),
+          email: email.trim(),
+          password,
+          role: activeRole,
+          phone: phone.trim() || undefined,
+          districtId,
+        });
+        setSuccessMsg(`Account created successfully as ${activeRole.toUpperCase()}! Redirecting...`);
+      } catch (err: any) {
+        setError(err?.message || "Failed to create account. Email may already be registered.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleQuickDemo = async (role: UserRole) => {
+    setLoading(true);
+    setError("");
+    setSuccessMsg("");
+    try {
+      if (role === "farmer") {
+        const found = allFarms.find((f) => f.id === selectedFarmId);
+        if (found) {
+          setActiveFarm(found);
+          localStorage.setItem("selected_farm_id", found.id);
+        }
+      }
+      const creds = DEMO_CREDENTIALS[role];
+      await loginWithCredentials(creds.email, creds.password);
+    } catch (err: any) {
+      setError(err?.message || "Demo login failed. Please ensure backend is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const roleTitle =
     activeRole === "farmer"
-      ? "Farmer"
+      ? t("role.farmer")
       : activeRole === "veterinarian"
-      ? "Veterinarian"
-      : "Government Officer";
+      ? t("role.veterinarian")
+      : t("role.officer");
 
   return (
     <div className="login-container">
-      <div className="login-card">
+      <div className="login-card" style={{ position: "relative" }}>
+        {/* Top-right Language Selector */}
+        <div style={{ position: "absolute", top: "16px", right: "16px", zIndex: 10 }}>
+          <LanguageSelector compact />
+        </div>
+
         {/* Header Branding */}
         <div className="login-header">
           <div className="login-brand-icon">
             <ShieldCheck size={38} color="#10B981" />
           </div>
-          <h1 className="login-title">AgriSentinel</h1>
-          <p className="login-subtitle">Biosecurity &amp; Disease Surveillance System</p>
+          <h1 className="login-title">{t("app.name")}</h1>
+          <p className="login-subtitle">{t("app.tagline")}</p>
         </div>
 
         {/* 1. ROLE SELECTION — BEFORE LOGIN */}
         <div className="role-selection-box">
-          <span className="role-selection-label">Choose your role:</span>
+          <span className="role-selection-label">{t("auth.chooseRole")}</span>
           <div className="login-role-tabs">
             <button
               type="button"
@@ -142,7 +157,7 @@ export const LoginPage: React.FC = () => {
               onClick={() => handleRoleChange("farmer")}
             >
               <UserCheck size={18} />
-              <span>Farmer</span>
+              <span>{t("role.farmer")}</span>
             </button>
             <button
               type="button"
@@ -150,7 +165,7 @@ export const LoginPage: React.FC = () => {
               onClick={() => handleRoleChange("veterinarian")}
             >
               <Stethoscope size={18} />
-              <span>Veterinarian</span>
+              <span>{t("role.veterinarian")}</span>
             </button>
             <button
               type="button"
@@ -158,7 +173,7 @@ export const LoginPage: React.FC = () => {
               onClick={() => handleRoleChange("officer")}
             >
               <Landmark size={18} />
-              <span>Government Officer</span>
+              <span>{t("role.officer")}</span>
             </button>
           </div>
         </div>
@@ -170,14 +185,14 @@ export const LoginPage: React.FC = () => {
             className={`mode-btn ${mode === "signin" ? "active" : ""}`}
             onClick={() => handleModeChange("signin")}
           >
-            Sign In
+            {t("auth.signIn")}
           </button>
           <button
             type="button"
             className={`mode-btn ${mode === "create" ? "active" : ""}`}
             onClick={() => handleModeChange("create")}
           >
-            Create Account
+            {t("auth.createAccount")}
           </button>
         </div>
 
@@ -193,7 +208,7 @@ export const LoginPage: React.FC = () => {
         <form onSubmit={handleFormSubmit} className="login-form">
           {mode === "create" && (
             <div className="form-group">
-              <label className="form-label">Full Name *</label>
+              <label className="form-label">{t("auth.fullName")}</label>
               <div className="input-with-icon">
                 <User size={18} className="input-icon" />
                 <input
@@ -215,7 +230,7 @@ export const LoginPage: React.FC = () => {
           )}
 
           <div className="form-group">
-            <label className="form-label">Email Address *</label>
+            <label className="form-label">{t("auth.email")}</label>
             <div className="input-with-icon">
               <Mail size={18} className="input-icon" />
               <input
@@ -231,7 +246,7 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Password *</label>
+            <label className="form-label">{t("auth.password")}</label>
             <div className="input-with-icon">
               <Lock size={18} className="input-icon" />
               <input
@@ -248,18 +263,28 @@ export const LoginPage: React.FC = () => {
 
           {activeRole === "farmer" && (
             <div className="form-group">
-              <label className="form-label">Select Your Farm *</label>
+              <label className="form-label">{t("auth.selectFarm")}</label>
               <div className="input-with-icon">
                 <UserCheck size={18} className="input-icon" />
                 <select
                   value={selectedFarmId}
                   onChange={(e) => setSelectedFarmId(e.target.value)}
                   className="form-input"
-                  style={{ background: "#F8FAFC", cursor: "pointer" }}
+                  style={{
+                    background: "#1E293B",
+                    color: "#FFFFFF",
+                    border: "1px solid #334155",
+                    borderRadius: "8px",
+                    paddingLeft: "42px",
+                    height: "46px",
+                    fontSize: "14px",
+                    width: "100%",
+                    cursor: "pointer",
+                  }}
                 >
                   {allFarms.map((farm) => (
-                    <option key={farm.id} value={farm.id}>
-                      {farm.name} — {farm.location} ({farm.farmType.toUpperCase()})
+                    <option key={farm.id} value={farm.id} style={{ background: "#0F172A", color: "#FFFFFF" }}>
+                      {translateData(farm.name, locale)} — {translateData(farm.location, locale)} ({farm.farmType.toUpperCase()})
                     </option>
                   ))}
                 </select>
@@ -270,7 +295,7 @@ export const LoginPage: React.FC = () => {
           {mode === "create" && (
             <>
               <div className="form-group">
-                <label className="form-label">Phone Number (Optional)</label>
+                <label className="form-label">{t("auth.phone")}</label>
                 <div className="input-with-icon">
                   <Phone size={18} className="input-icon" />
                   <input
@@ -284,11 +309,12 @@ export const LoginPage: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">District Scope</label>
+                <label className="form-label">{t("auth.districtScope")}</label>
                 <select
                   value={districtId}
                   onChange={(e) => setDistrictId(e.target.value)}
                   className="form-input"
+                  style={{ background: "#1E293B", color: "#FFFFFF" }}
                 >
                   <option value="district-ranchi">Ranchi, Jharkhand</option>
                   <option value="district-ramgarh">Ramgarh, Jharkhand</option>
