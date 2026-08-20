@@ -1,7 +1,7 @@
 """add official_id to users
 
 Revision ID: 005_user_official_id
-Revises: 004_otp_attempts_and_token_revocation
+Revises: 004_otp_token_rev
 Create Date: 2026-08-20
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '005_user_official_id'
-down_revision = '004_otp_attempts_and_token_revocation'
+down_revision = '004_otp_token_rev'
 branch_labels = None
 depends_on = None
 
