@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { UserRole, Farm } from "../types";
 import { initialFarm, allFarmsMock } from "../data/mockData";
-import { farmService, authService, API_CACHE_TTL_MS, invalidateApiCache } from "../services/api";
+import { farmService, authService, API_CACHE_TTL_MS, invalidateApiCache, dedupeById } from "../services/api";
 import { getAllCachedFarmBundles } from "../offline/storage/cacheStore";
 import { isCacheFresh, cacheKey } from "../services/apiCache";
 
@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeFarmState, setActiveFarmState] = useState<Farm>(() => {
     const savedId = typeof window !== "undefined" ? localStorage.getItem("selected_farm_id") : null;
     if (savedId) {
-      const found = allFarmsMock.find((f) => f.id === savedId);
+      const found = allFarmsMock.find((f: Farm) => f.id === savedId);
       if (found) return found;
     }
     return initialFarm;
@@ -84,10 +84,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setActiveFarmState((current) => {
         const savedId = localStorage.getItem("selected_farm_id");
         if (savedId) {
-          const matchSaved = combined.find((f) => f.id === savedId);
+          const matchSaved = combined.find((f: Farm) => f.id === savedId);
           if (matchSaved) return matchSaved;
         }
-        const stillExists = combined.find((f) => f.id === current.id);
+        const stillExists = combined.find((f: Farm) => f.id === current.id);
         return stillExists || combined[0];
       });
     } catch {
@@ -98,10 +98,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setActiveFarmState((current) => {
         const savedId = localStorage.getItem("selected_farm_id");
         if (savedId) {
-          const matchSaved = combined.find((f) => f.id === savedId);
+          const matchSaved = combined.find((f: Farm) => f.id === savedId);
           if (matchSaved) return matchSaved;
         }
-        const stillExists = combined.find((f) => f.id === current.id);
+        const stillExists = combined.find((f: Farm) => f.id === current.id);
         return stillExists || combined[0];
       });
     }
