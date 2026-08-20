@@ -12,7 +12,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileNav }) => {
-  const { role, activeFarm, setActiveFarm, allFarms, logout } = useAuth();
+  const { role, activeFarm, setActiveFarm, myFarms, logout } = useAuth();
   const { unreadCount, setIsDrawerOpen, refreshNotifications } = useNotifications();
   const { t, locale } = useTranslation();
 
@@ -72,26 +72,38 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileNav }) => {
           {role === "farmer" && <LanguageSelector compact />}
 
           <div className="farm-selector-wrapper">
-            <select
-              value={activeFarm.id}
-              onChange={(e) => {
-                const found = allFarms.find((f) => f.id === e.target.value);
-                if (found) setActiveFarm(found);
-              }}
-              className="farm-select-dropdown"
-            >
-              {allFarms.map((farm) => (
-                <option key={farm.id} value={farm.id}>
-                  {translateData(farm.name, locale)} — {translateData(farm.location, locale)} (
-                  {farm.farmType === "poultry"
-                    ? t("status.farmType.poultry")
-                    : farm.farmType === "pig"
-                    ? t("status.farmType.pig")
-                    : t("status.farmType.mixed")}
-                  )
-                </option>
-              ))}
-            </select>
+            {role === "farmer" && myFarms.length > 1 ? (
+              <select
+                value={activeFarm.id}
+                onChange={(e) => {
+                  const found = myFarms.find((f) => f.id === e.target.value);
+                  if (found) setActiveFarm(found);
+                }}
+                className="farm-select-dropdown"
+              >
+                {myFarms.map((farm) => (
+                  <option key={farm.id} value={farm.id}>
+                    {translateData(farm.name, locale)} — {translateData(farm.location, locale)} (
+                    {farm.farmType === "poultry"
+                      ? t("status.farmType.poultry")
+                      : farm.farmType === "pig"
+                      ? t("status.farmType.pig")
+                      : t("status.farmType.mixed")}
+                    )
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="farm-select-dropdown farm-select-readonly" title={activeFarm.location}>
+                {translateData(activeFarm.name, locale)} — {translateData(activeFarm.location, locale)} (
+                {activeFarm.farmType === "poultry"
+                  ? t("status.farmType.poultry")
+                  : activeFarm.farmType === "pig"
+                  ? t("status.farmType.pig")
+                  : t("status.farmType.mixed")}
+                )
+              </div>
+            )}
           </div>
 
           <button

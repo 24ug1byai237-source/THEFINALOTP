@@ -32,6 +32,7 @@ interface AuthContextType {
   activeFarm: Farm;
   setActiveFarm: (farm: Farm) => void;
   allFarms: Farm[];
+  myFarms: Farm[];
   refreshFarms: (force?: boolean) => Promise<void>;
   sendOTP: (phone: string) => Promise<{
     message: string;
@@ -68,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return initialFarm;
   });
   const [allFarms, setAllFarms] = useState<Farm[]>(allFarmsMock);
+  const [myFarms, setMyFarms] = useState<Farm[]>([]);
 
   const setActiveFarm = useCallback((farm: Farm) => {
     setActiveFarmState(farm);
@@ -76,36 +78,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const loadFarms = useCallback(async (force = false) => {
+  const loadFarms = useCallback(async (force = false, userFarmIds?: string[]) => {
     try {
       const farms = await farmService.getAllFarms({ force });
       const combined = farms.length > 0 ? dedupeById([...farms, ...allFarmsMock]) : allFarmsMock;
       setAllFarms(combined);
-      setActiveFarmState((current) => {
+
+      // Filter to only the farms this user owns
+      const farmIds = userFarmIds ?? (user?.farmIds ?? []);
+      const owned = farmIds.length > 0
+        ? combined.filter((f: Farm) => farmIds.includes(f.id))
+        : combined;
+      const myFarmList = owned.length > 0 ? owned : combined;
+      setMyFarms(myFarmList);
+
+      setActiveFarmState(() => {
         const savedId = localStorage.getItem("selected_farm_id");
         if (savedId) {
-          const matchSaved = combined.find((f: Farm) => f.id === savedId);
+          const matchSaved = myFarmList.find((f: Farm) => f.id === savedId);
           if (matchSaved) return matchSaved;
         }
-        const stillExists = combined.find((f: Farm) => f.id === current.id);
-        return stillExists || combined[0];
+        return myFarmList[0];
       });
     } catch {
       const cached = await getAllCachedFarmBundles();
       const cachedFarms = cached.length > 0 ? cached.map((b) => b.farm) : [];
       const combined = cachedFarms.length > 0 ? dedupeById([...cachedFarms, ...allFarmsMock]) : allFarmsMock;
       setAllFarms(combined);
-      setActiveFarmState((current) => {
+
+      const farmIds = userFarmIds ?? (user?.farmIds ?? []);
+      const owned = farmIds.length > 0
+        ? combined.filter((f: Farm) => farmIds.includes(f.id))
+        : combined;
+      const myFarmList = owned.length > 0 ? owned : combined;
+      setMyFarms(myFarmList);
+
+      setActiveFarmState(() => {
         const savedId = localStorage.getItem("selected_farm_id");
         if (savedId) {
-          const matchSaved = combined.find((f: Farm) => f.id === savedId);
+          const matchSaved = myFarmList.find((f: Farm) => f.id === savedId);
           if (matchSaved) return matchSaved;
         }
-        const stillExists = combined.find((f: Farm) => f.id === current.id);
-        return stillExists || combined[0];
+        return myFarmList[0];
       });
     }
-  }, []);
+  }, [user?.farmIds]);
 
   // Restore authenticated session on startup from stored access token
   useEffect(() => {
@@ -129,7 +146,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(authUser);
         setRoleState(authUser.role);
         setIsAuthenticated(true);
-        void loadFarms(true);
+        // Pass farmIds directly so filter is applied before user state propagates
+        void loadFarms(true, authUser.farmIds);
       })
       .catch(() => {
         authService.logout();
@@ -158,7 +176,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRoleState(userData.role);
     setIsAuthenticated(true);
     invalidateApiCache();
-    await loadFarms(true);
+    // Pass farmIds directly so the farm list is immediately scoped to this user
+    await loadFarms(true, userData.farmIds);
   }, [loadFarms]);
 
   const loginWithOTP = useCallback(async (phone: string, code: string) => {
@@ -219,6 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setRoleState("farmer");
     setAllFarms([]);
+    setMyFarms([]);
     setActiveFarm(initialFarm);
   }, []);
 
@@ -230,6 +250,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       activeFarm: activeFarmState,
       setActiveFarm,
       allFarms,
+      myFarms,
       refreshFarms: loadFarms,
       sendOTP,
       loginWithOTP,
@@ -244,6 +265,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       activeFarmState,
       setActiveFarm,
       allFarms,
+      myFarms,
       loadFarms,
       sendOTP,
       loginWithOTP,

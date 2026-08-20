@@ -200,6 +200,19 @@
   color: white;
 }
 
+/* Read-only display when farmer has only one farm — no dropdown arrow */
+.farm-select-readonly {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.95;
+  user-select: none;
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
 .notification-bell-btn {
   position: relative;
   background: rgba(255, 255, 255, 0.15);
