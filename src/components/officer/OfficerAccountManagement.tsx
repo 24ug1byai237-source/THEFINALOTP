@@ -239,7 +239,7 @@ export const OfficerAccountManagement: React.FC = () => {
                           Delete Account
                         </button>
                       ) : (
-                        <span style={{ fontSize: "12px", color: "#94a3b8", italic: "true" }}>Disabled</span>
+                        <span style={{ fontSize: "12px", color: "#94a3b8", fontStyle: "italic" }}>Disabled</span>
                       )}
                     </td>
                   </tr>
