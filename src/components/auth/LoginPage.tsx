@@ -16,7 +16,7 @@ import type { UserRole } from "../../types";
 import { useAuth, DEMO_CREDENTIALS } from "../../context/AuthContext";
 
 export const LoginPage: React.FC = () => {
-  const { loginWithCredentials, registerByRole } = useAuth();
+  const { loginWithCredentials, registerByRole, allFarms, setActiveFarm } = useAuth();
 
   // Role Selection (Farmer | Veterinarian | Government Officer)
   const [activeRole, setActiveRole] = useState<UserRole>("farmer");
@@ -30,6 +30,7 @@ export const LoginPage: React.FC = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [districtId, setDistrictId] = useState("district-ranchi");
+  const [selectedFarmId, setSelectedFarmId] = useState("FARM-JH-2026-0487");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -52,56 +53,65 @@ export const LoginPage: React.FC = () => {
     setError("");
     setSuccessMsg("");
 
-    if (mode === "signin") {
-      if (!email.trim() || !password.trim()) {
-        setError("Please enter your email and password.");
-        return;
+      if (activeRole === "farmer") {
+        const found = allFarms.find((f) => f.id === selectedFarmId);
+        if (found) setActiveFarm(found);
       }
-      setLoading(true);
-      try {
-        await loginWithCredentials(email.trim(), password);
-      } catch (err: any) {
-        setError(err?.message || "Invalid credentials. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      if (!fullName.trim() || !email.trim() || !password.trim()) {
-        setError("Full Name, Email, and Password are required to create an account.");
-        return;
-      }
-      setLoading(true);
-      try {
-        await registerByRole({
-          fullName: fullName.trim(),
-          email: email.trim(),
-          password,
-          role: activeRole,
-          phone: phone.trim() || undefined,
-          districtId,
-        });
-        setSuccessMsg(`Account created successfully as ${activeRole.toUpperCase()}! Redirecting...`);
-      } catch (err: any) {
-        setError(err?.message || "Failed to create account. Email may already be registered.");
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
 
-  const handleQuickDemo = async (role: UserRole) => {
-    setLoading(true);
-    setError("");
-    setSuccessMsg("");
-    try {
-      const creds = DEMO_CREDENTIALS[role];
-      await loginWithCredentials(creds.email, creds.password);
-    } catch (err: any) {
-      setError(err?.message || "Demo login failed. Please ensure backend is running.");
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (mode === "signin") {
+        if (!email.trim() || !password.trim()) {
+          setError("Please enter your email and password.");
+          return;
+        }
+        setLoading(true);
+        try {
+          await loginWithCredentials(email.trim(), password);
+        } catch (err: any) {
+          setError(err?.message || "Invalid credentials. Please try again.");
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        if (!fullName.trim() || !email.trim() || !password.trim()) {
+          setError("Full Name, Email, and Password are required to create an account.");
+          return;
+        }
+        setLoading(true);
+        try {
+          await registerByRole({
+            fullName: fullName.trim(),
+            email: email.trim(),
+            password,
+            role: activeRole,
+            phone: phone.trim() || undefined,
+            districtId,
+          });
+          setSuccessMsg(`Account created successfully as ${activeRole.toUpperCase()}! Redirecting...`);
+        } catch (err: any) {
+          setError(err?.message || "Failed to create account. Email may already be registered.");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    const handleQuickDemo = async (role: UserRole) => {
+      setLoading(true);
+      setError("");
+      setSuccessMsg("");
+      try {
+        if (role === "farmer") {
+          const found = allFarms.find((f) => f.id === selectedFarmId);
+          if (found) setActiveFarm(found);
+        }
+        const creds = DEMO_CREDENTIALS[role];
+        await loginWithCredentials(creds.email, creds.password);
+      } catch (err: any) {
+        setError(err?.message || "Demo login failed. Please ensure backend is running.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const roleTitle =
     activeRole === "farmer"
@@ -235,6 +245,27 @@ export const LoginPage: React.FC = () => {
               />
             </div>
           </div>
+
+          {activeRole === "farmer" && (
+            <div className="form-group">
+              <label className="form-label">Select Your Farm *</label>
+              <div className="input-with-icon">
+                <UserCheck size={18} className="input-icon" />
+                <select
+                  value={selectedFarmId}
+                  onChange={(e) => setSelectedFarmId(e.target.value)}
+                  className="form-input"
+                  style={{ background: "#F8FAFC", cursor: "pointer" }}
+                >
+                  {allFarms.map((farm) => (
+                    <option key={farm.id} value={farm.id}>
+                      {farm.name} — {farm.location} ({farm.farmType.toUpperCase()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
           {mode === "create" && (
             <>

@@ -59,29 +59,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [role, setRoleState] = useState<UserRole>("farmer");
-  const [activeFarm, setActiveFarm] = useState<Farm>(initialFarm);
+  const [activeFarmState, setActiveFarmState] = useState<Farm>(() => {
+    const savedId = typeof window !== "undefined" ? localStorage.getItem("selected_farm_id") : null;
+    if (savedId) {
+      const found = allFarmsMock.find((f) => f.id === savedId);
+      if (found) return found;
+    }
+    return initialFarm;
+  });
   const [allFarms, setAllFarms] = useState<Farm[]>(allFarmsMock);
+
+  const setActiveFarm = useCallback((farm: Farm) => {
+    setActiveFarmState(farm);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("selected_farm_id", farm.id);
+    }
+  }, []);
 
   const loadFarms = useCallback(async (force = false) => {
     try {
       const farms = await farmService.getAllFarms({ force });
-      if (farms.length > 0) {
-        setAllFarms(farms);
-        setActiveFarm((current) => {
-          const stillExists = farms.find((f) => f.id === current.id);
-          return stillExists || farms[0];
-        });
-      }
+      const combined = farms.length > 0 ? dedupeById([...farms, ...allFarmsMock]) : allFarmsMock;
+      setAllFarms(combined);
+      setActiveFarmState((current) => {
+        const savedId = localStorage.getItem("selected_farm_id");
+        if (savedId) {
+          const matchSaved = combined.find((f) => f.id === savedId);
+          if (matchSaved) return matchSaved;
+        }
+        const stillExists = combined.find((f) => f.id === current.id);
+        return stillExists || combined[0];
+      });
     } catch {
       const cached = await getAllCachedFarmBundles();
-      if (cached.length > 0) {
-        const farms = cached.map((b) => b.farm);
-        setAllFarms(farms);
-        setActiveFarm((current) => {
-          const stillExists = farms.find((f) => f.id === current.id);
-          return stillExists || farms[0];
-        });
-      }
+      const cachedFarms = cached.length > 0 ? cached.map((b) => b.farm) : [];
+      const combined = cachedFarms.length > 0 ? dedupeById([...cachedFarms, ...allFarmsMock]) : allFarmsMock;
+      setAllFarms(combined);
+      setActiveFarmState((current) => {
+        const savedId = localStorage.getItem("selected_farm_id");
+        if (savedId) {
+          const matchSaved = combined.find((f) => f.id === savedId);
+          if (matchSaved) return matchSaved;
+        }
+        const stillExists = combined.find((f) => f.id === current.id);
+        return stillExists || combined[0];
+      });
     }
   }, []);
 
@@ -205,7 +227,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated,
       user,
       role,
-      activeFarm,
+      activeFarm: activeFarmState,
       setActiveFarm,
       allFarms,
       refreshFarms: loadFarms,
@@ -219,7 +241,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated,
       user,
       role,
-      activeFarm,
+      activeFarmState,
+      setActiveFarm,
       allFarms,
       loadFarms,
       sendOTP,
