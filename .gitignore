@@ -1,4 +1,4 @@
-﻿# Logs
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -23,3 +23,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Temporary databases, uploads & archives
+*.zip
+*.db
+backend/scripts/*.db
+uploads/
